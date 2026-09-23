@@ -21,7 +21,6 @@ class Orchestrator:
         self.memory = memory_manager or MemoryManager()
         self.trace = AgentTrace()
         self.response_builder = ResponseBuilder()
-        
 
     def run(
         self,
@@ -147,7 +146,8 @@ class Orchestrator:
                     "memory_context": memory_context,
                     "execution_results": execution_results,
                     "validation_results": validation_results,
-                    "recovery_results": recovery_results
+                    "recovery_results": recovery_results,
+                    "trace": self.trace.get_trace()
                 }
 
             recovery_state = {
@@ -266,7 +266,8 @@ class Orchestrator:
                         "memory_context": memory_context,
                         "execution_results": execution_results,
                         "validation_results": validation_results,
-                        "recovery_results": recovery_results
+                        "recovery_results": recovery_results,
+                        "trace": self.trace.get_trace()
                     }
 
                 recovery_state["retry_count"] = recovery_result.get(
@@ -289,6 +290,32 @@ class Orchestrator:
             if task_completed:
                 continue
 
+        response = self.response_builder.build(
+            user_request=user_request,
+            plan=plan,
+            execution_results=execution_results,
+            memory_context=memory_context
+        )
+
+        self.trace.add_event(
+            "BUSINESS_INSIGHT",
+            "Agent generated business insights from validated results.",
+            {
+                "insight_count": len(
+                    response.get(
+                        "insights",
+                        []
+                    )
+                ),
+                "recommendation_count": len(
+                    response.get(
+                        "recommendations",
+                        []
+                    )
+                )
+            }
+        )
+
         self.trace.add_event(
             "FINAL_RESPONSE",
             "Agent completed the request successfully.",
@@ -304,5 +331,17 @@ class Orchestrator:
             "memory_context": memory_context,
             "execution_results": execution_results,
             "validation_results": validation_results,
-            "recovery_results": recovery_results
-                }
+            "recovery_results": recovery_results,
+            "insights": response.get(
+                "insights",
+                []
+            ),
+            "recommendations": response.get(
+                "recommendations",
+                []
+            ),
+            "final_response": response.get(
+                "final_response"
+            ),
+            "trace": self.trace.get_trace()
+            }
