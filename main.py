@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from registry import get_tool
 from planner import Planner
+from executor import Executor
 
 
 app = FastAPI(
@@ -43,3 +44,15 @@ def create_plan(input_data: Dict[str, Any]):
     planner = Planner()
 
     return planner.plan(user_request)
+
+@app.post("/agent/execute")
+def execute_task(input_data: Dict[str, Any]):
+    task = input_data.get("task")
+    tool_input = input_data.get("input", {})
+
+    executor = Executor()
+
+    return executor.execute_task(
+        task,
+        tool_input
+    )
