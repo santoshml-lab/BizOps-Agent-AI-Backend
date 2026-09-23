@@ -9,6 +9,7 @@ from memory import MemoryManager
 from trace import AgentTrace
 from response_builder import ResponseBuilder
 from input_resolver import InputResolver
+from result_aggregator import ResultAggregator
 
 
 class Orchestrator:
@@ -21,6 +22,7 @@ class Orchestrator:
         self.approval = ApprovalManager()
         self.memory = memory_manager or MemoryManager()
         self.trace = AgentTrace()
+        self.response_builder = ResponseBuilder()
         self.response_builder = ResponseBuilder()
         self.input_resolver = InputResolver()
 
@@ -367,6 +369,19 @@ class Orchestrator:
         # -------------------------------------------------
         # BUSINESS INSIGHT
         # -------------------------------------------------
+
+        aggregated_result = self.result_aggregator.aggregate(
+            execution_results
+)
+
+        self.trace.add_event(
+            "RESULT_AGGREGATION",
+            "Agent aggregated validated tool results.",
+    {
+            "status": aggregated_result.get("status"),
+            "count": aggregated_result.get("count", 0)
+    }
+)
 
         response = self.response_builder.build(
             user_request=user_request,
