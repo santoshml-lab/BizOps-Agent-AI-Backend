@@ -407,8 +407,11 @@ class Orchestrator:
             user_request=user_request,
             plan=plan,
             execution_results=execution_results,
-            memory_context=memory_context
+            memory_context=memory_context,
+            reasoning_result=reasoning_result
         )
+            
+        
 
         self.trace.add_event(
             "BUSINESS_INSIGHT",
