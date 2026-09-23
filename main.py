@@ -20,6 +20,7 @@ app = FastAPI(
 )
 
 memory_manager = MemoryManager()
+input_resolver = InputResolver()
 
 
 @app.get("/")
@@ -138,6 +139,24 @@ def check_approval(input_data: Dict[str, Any]):
     return approval_manager.check_approval(
         action,
         action_input,
+    )
+
+@app.post("/agent/resolve-input")
+def resolve_input(input_data: Dict[str, Any]):
+    task = input_data.get("task")
+    user_request = input_data.get("request", "")
+    task_inputs = input_data.get("task_inputs", {})
+
+    if not task:
+        return {
+            "status": "failed",
+            "error": "Task is required.",
+        }
+
+    return input_resolver.resolve(
+        task=task,
+        user_request=user_request,
+        task_inputs=task_inputs,
     )
 
 
