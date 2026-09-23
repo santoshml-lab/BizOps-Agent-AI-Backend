@@ -12,15 +12,13 @@ from trace import AgentTrace
 class Orchestrator:
 
     def __init__(self, memory_manager=None):
-    self.planner = Planner()
-    self.executor = Executor()
-    self.validator = Validator()
-    self.recovery = RecoveryEngine()
-    self.approval = ApprovalManager()
-    self.memory = memory_manager or MemoryManager()
-    self.trace = AgentTrace()
-    
-        
+        self.planner = Planner()
+        self.executor = Executor()
+        self.validator = Validator()
+        self.recovery = RecoveryEngine()
+        self.approval = ApprovalManager()
+        self.memory = memory_manager or MemoryManager()
+        self.trace = AgentTrace()
 
     def run(
         self,
@@ -28,10 +26,6 @@ class Orchestrator:
         task_inputs: Dict[str, Dict[str, Any]],
         session_id: str = "default_session"
     ) -> Dict[str, Any]:
-
-        # ---------------------------------------------------------
-        # Memory Retrieval
-        # ---------------------------------------------------------
 
         self.trace.add_event(
             "MEMORY_RETRIEVAL",
@@ -60,10 +54,6 @@ class Orchestrator:
             }
         )
 
-        # ---------------------------------------------------------
-        # Planning
-        # ---------------------------------------------------------
-
         self.trace.add_event(
             "PLANNING",
             "Agent is creating an execution plan.",
@@ -77,7 +67,10 @@ class Orchestrator:
             memory_context
         )
 
-        tasks = plan.get("tasks", [])
+        tasks = plan.get(
+            "tasks",
+            []
+        )
 
         self.trace.add_event(
             "PLAN_CREATED",
@@ -92,10 +85,6 @@ class Orchestrator:
         execution_results = []
         validation_results = []
         recovery_results = []
-
-        # ---------------------------------------------------------
-        # Task Execution Loop
-        # ---------------------------------------------------------
 
         for task in tasks:
 
@@ -112,13 +101,12 @@ class Orchestrator:
                 }
             )
 
-            # -----------------------------------------------------
-            # Human Approval
-            # -----------------------------------------------------
-
             approval = self.approval.check_approval(
                 tool_name,
-                task_inputs.get(task_id, {})
+                task_inputs.get(
+                    task_id,
+                    {}
+                )
             )
 
             self.trace.add_event(
@@ -131,7 +119,9 @@ class Orchestrator:
                         "approval_required",
                         False
                     ),
-                    "status": approval.get("status")
+                    "status": approval.get(
+                        "status"
+                    )
                 }
             )
 
@@ -157,25 +147,20 @@ class Orchestrator:
                     "recovery_results": recovery_results
                 }
 
-            # -----------------------------------------------------
-            # Recovery State
-            # -----------------------------------------------------
-
             recovery_state = {
                 "retry_count": 0
             }
 
             task_completed = False
 
-            # -----------------------------------------------------
-            # Execution + Validation + Recovery
-            # -----------------------------------------------------
-
             while True:
 
                 result = self.executor.execute_task(
                     task,
-                    task_inputs.get(task_id, {})
+                    task_inputs.get(
+                        task_id,
+                        {}
+                    )
                 )
 
                 self.trace.add_event(
@@ -184,7 +169,9 @@ class Orchestrator:
                     {
                         "task_id": task_id,
                         "tool": tool_name,
-                        "status": result.get("status"),
+                        "status": result.get(
+                            "status"
+                        ),
                         "retry_count": recovery_state.get(
                             "retry_count",
                             0
@@ -192,7 +179,9 @@ class Orchestrator:
                     }
                 )
 
-                execution_results.append(result)
+                execution_results.append(
+                    result
+                )
 
                 validation = self.validator.validate_task_result(
                     task,
@@ -205,7 +194,9 @@ class Orchestrator:
                     {
                         "task_id": task_id,
                         "tool": tool_name,
-                        "status": validation.get("status"),
+                        "status": validation.get(
+                            "status"
+                        ),
                         "issues": validation.get(
                             "issues",
                             []
@@ -217,20 +208,14 @@ class Orchestrator:
                     }
                 )
 
-                validation_results.append(validation)
-
-                # -------------------------------------------------
-                # Successful Task
-                # -------------------------------------------------
+                validation_results.append(
+                    validation
+                )
 
                 if validation["status"] == "passed":
 
                     task_completed = True
                     break
-
-                # -------------------------------------------------
-                # Recovery
-                # -------------------------------------------------
 
                 recovery_result = self.recovery.recover(
                     task,
@@ -244,7 +229,9 @@ class Orchestrator:
                     {
                         "task_id": task_id,
                         "tool": tool_name,
-                        "status": recovery_result.get("status"),
+                        "status": recovery_result.get(
+                            "status"
+                        ),
                         "strategy": recovery_result.get(
                             "strategy"
                         ),
@@ -255,11 +242,9 @@ class Orchestrator:
                     }
                 )
 
-                recovery_results.append(recovery_result)
-
-                # -------------------------------------------------
-                # Recovery Failed
-                # -------------------------------------------------
+                recovery_results.append(
+                    recovery_result
+                )
 
                 if recovery_result["status"] != "retry":
 
@@ -281,10 +266,6 @@ class Orchestrator:
                         "recovery_results": recovery_results
                     }
 
-                # -------------------------------------------------
-                # Update Retry Count
-                # -------------------------------------------------
-
                 recovery_state["retry_count"] = recovery_result.get(
                     "retry_count",
                     recovery_state["retry_count"] + 1
@@ -305,10 +286,6 @@ class Orchestrator:
             if task_completed:
                 continue
 
-        # ---------------------------------------------------------
-        # Final Successful Response
-        # ---------------------------------------------------------
-
         self.trace.add_event(
             "FINAL_RESPONSE",
             "Agent completed the request successfully.",
@@ -325,4 +302,4 @@ class Orchestrator:
             "execution_results": execution_results,
             "validation_results": validation_results,
             "recovery_results": recovery_results
-        }
+                }
