@@ -52,12 +52,12 @@ class InputResolver:
                    "and sales trends 2026"
         )
 
-       return {
-           "status": "success",
-           "task_id": task_id,
-           "tool": tool_name,
-           "input": {
-               "query": search_query
+        return {
+            "status": "success",
+            "task_id": task_id,
+            "tool": tool_name,
+            "input": {
+                "query": search_query
         },
         "source": "task_specific"
     }
