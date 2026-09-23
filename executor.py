@@ -34,14 +34,27 @@ class Executor:
 
             result = tool.execute(input_data)
 
+            if result.get("status") == "error":
             return {
-                "task_id": task_id,
-                "tool": tool_name,
-                "status": "success",
-                "input": input_data,
-                "output": result,
-                "error": None,
-            }
+        "task_id": task_id,
+        "tool": tool_name,
+        "status": "error",
+        "input": input_data,
+        "output": result,
+        "error": result.get("error", "Tool execution failed."),
+    }
+
+return {
+    "task_id": task_id,
+    "tool": tool_name,
+    "status": "success",
+    "input": input_data,
+    "output": result,
+    "error": None,
+}
+
+            
+         
 
         except Exception as error:
             return {
