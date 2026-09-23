@@ -147,10 +147,19 @@ def run_agent(input_data: Dict[str, Any]):
 
     orchestrator = Orchestrator()
 
+    session_id = input_data.get(
+    "session_id",
+    "default_session"
+)
+
     result = orchestrator.run(
-        user_request,
-        task_inputs
-    )
+    user_request,
+    task_inputs,
+    session_id
+)
+        
+        
+    
 
     result["trace"] = orchestrator.trace.get_trace()
 
