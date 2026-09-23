@@ -13,9 +13,9 @@ from orchestrator import Orchestrator
 
 
 app = FastAPI(
-    title="BizOps Agent AI",
-    description="Agentic AI system for business operations",
-    version="1.0.0"
+title="BizOps Agent AI",
+description="Agentic AI system for business operations",
+version="1.0.0"
 )
 
 
