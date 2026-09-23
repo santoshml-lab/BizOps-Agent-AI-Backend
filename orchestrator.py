@@ -110,50 +110,71 @@ class Orchestrator:
                     "recovery_results": recovery_results
                 }
 
-            # Tool execution
-            result = self.executor.execute_task(
-                task,
-                task_inputs.get(task_id, {})
-            )
+            # Recovery state
+            recovery_state = {
+                "retry_count": 0
+            }
 
-            self.trace.add_event(
-                "TOOL_EXECUTION",
-                "Agent executed the selected tool.",
-                {
-                    "task_id": task_id,
-                    "tool": tool_name,
-                    "status": result.get("status")
-                }
-            )
+            task_completed = False
 
-            execution_results.append(result)
+            # Execution + validation + recovery loop
+            while True:
 
-            # Validation
-            validation = self.validator.validate_task_result(
-                task,
-                result
-            )
+                # Tool execution
+                result = self.executor.execute_task(
+                    task,
+                    task_inputs.get(task_id, {})
+                )
 
-            self.trace.add_event(
-                "VALIDATION",
-                "Agent validated the tool result.",
-                {
-                    "task_id": task_id,
-                    "tool": tool_name,
-                    "status": validation.get("status"),
-                    "issues": validation.get("issues", [])
-                }
-            )
+                self.trace.add_event(
+                    "TOOL_EXECUTION",
+                    "Agent executed the selected tool.",
+                    {
+                        "task_id": task_id,
+                        "tool": tool_name,
+                        "status": result.get("status"),
+                        "retry_count": recovery_state.get(
+                            "retry_count",
+                            0
+                        )
+                    }
+                )
 
-            validation_results.append(validation)
+                execution_results.append(result)
 
-            # Recovery
-            if validation["status"] == "failed":
+                # Validation
+                validation = self.validator.validate_task_result(
+                    task,
+                    result
+                )
 
-                recovery_state = {
-                    "retry_count": 0
-                }
+                self.trace.add_event(
+                    "VALIDATION",
+                    "Agent validated the tool result.",
+                    {
+                        "task_id": task_id,
+                        "tool": tool_name,
+                        "status": validation.get("status"),
+                        "issues": validation.get(
+                            "issues",
+                            []
+                        ),
+                        "retry_count": recovery_state.get(
+                            "retry_count",
+                            0
+                        )
+                    }
+                )
 
+                validation_results.append(validation)
+
+                # Successful task
+                if validation["status"] == "passed":
+
+                    task_completed = True
+                    break
+
+                # Recovery
                 recovery_result = self.recovery.recover(
                     task,
                     result,
@@ -167,7 +188,9 @@ class Orchestrator:
                         "task_id": task_id,
                         "tool": tool_name,
                         "status": recovery_result.get("status"),
-                        "strategy": recovery_result.get("strategy"),
+                        "strategy": recovery_result.get(
+                            "strategy"
+                        ),
                         "retry_count": recovery_result.get(
                             "retry_count",
                             0
@@ -177,6 +200,7 @@ class Orchestrator:
 
                 recovery_results.append(recovery_result)
 
+                # Recovery failed / max retries reached
                 if recovery_result["status"] != "retry":
 
                     self.trace.add_event(
@@ -196,6 +220,28 @@ class Orchestrator:
                         "recovery_results": recovery_results
                     }
 
+                # Update retry count
+                recovery_state["retry_count"] = recovery_result.get(
+                    "retry_count",
+                    recovery_state["retry_count"] + 1
+                )
+
+                self.trace.add_event(
+                    "RETRY_EXECUTION",
+                    "Agent is retrying the failed task.",
+                    {
+                        "task_id": task_id,
+                        "tool": tool_name,
+                        "retry_count": recovery_state[
+                            "retry_count"
+                        ]
+                    }
+                )
+
+            # Task completed successfully
+            if task_completed:
+                continue
+
         # Final successful response
         self.trace.add_event(
             "FINAL_RESPONSE",
@@ -212,4 +258,4 @@ class Orchestrator:
             "execution_results": execution_results,
             "validation_results": validation_results,
             "recovery_results": recovery_results
-            }
+                    }
