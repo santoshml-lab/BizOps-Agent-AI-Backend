@@ -7,9 +7,23 @@ class AgentState:
     session_id: str
     user_request: str
 
-    tasks: List[Dict[str, Any]] = field(default_factory=list)
+    tasks: List[Dict[str, Any]] = field(
+        default_factory=list
+    )
 
-    tool_results: List[Dict[str, Any]] = field(default_factory=list)
+    tool_results: List[Dict[str, Any]] = field(
+        default_factory=list
+    )
+
+    investigation: Dict[str, Any] = field(
+        default_factory=lambda: {
+            "required": False,
+            "reason": None,
+            "questions": [],
+            "attempted": False,
+            "completed": False
+        }
+    )
 
     validation: Dict[str, Any] = field(
         default_factory=lambda: {
@@ -28,6 +42,8 @@ class AgentState:
         }
     )
 
-    memory: List[Dict[str, Any]] = field(default_factory=list)
+    memory: List[Dict[str, Any]] = field(
+        default_factory=list
+    )
 
     final_response: Optional[str] = None
