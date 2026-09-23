@@ -3,6 +3,7 @@ from typing import Dict
 from base import BaseTool
 from calculator import CalculatorTool
 from data_analysis import DataAnalysisTool
+from web_search import WebSearchTool
 
 
 TOOL_REGISTRY: Dict[str, BaseTool] = {}
@@ -23,3 +24,4 @@ def get_tool(tool_name: str) -> BaseTool:
 
 register_tool(CalculatorTool())
 register_tool(DataAnalysisTool())
+register_tool(WebSearchTool())
