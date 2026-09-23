@@ -52,6 +52,18 @@ class Orchestrator:
 
             task_id = task.get("task_id")
             tool_name = task.get("tool")
+            self.trace.add_event(
+            "TASK_CREATED",
+            "Agent created a task for execution.",
+                {
+                    "task_id": task_id,
+                    "tool": tool_name,
+                    "description": task.get("description")
+                }
+                        )
+            
+            
+                    
 
             approval = self.approval.check_approval(
                 tool_name,
