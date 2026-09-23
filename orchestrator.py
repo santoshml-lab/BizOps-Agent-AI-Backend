@@ -24,55 +24,59 @@ class Orchestrator:
         task_inputs: Dict[str, Dict[str, Any]]
     ) -> Dict[str, Any]:
 
+        # Planning
         self.trace.add_event(
-        "PLANNING",
-        "Agent is creating an execution plan.",
-    {
-        "user_request": user_request
-    }
-)
+            "PLANNING",
+            "Agent is creating an execution plan.",
+            {
+                "user_request": user_request
+            }
+        )
 
         plan = self.planner.plan(user_request)
 
         tasks = plan.get("tasks", [])
+
+        # Plan created
         self.trace.add_event(
-        "PLAN_CREATED",
-        "Execution plan created successfully.",
-    {
-        "task_count": len(tasks),
-        "tasks": tasks
-    }
+            "PLAN_CREATED",
+            "Execution plan created successfully.",
+            {
+                "task_count": len(tasks),
+                "tasks": tasks
+            }
         )
 
         execution_results = []
         validation_results = []
         recovery_results = []
 
+        # Task execution loop
         for task in tasks:
 
             task_id = task.get("task_id")
             tool_name = task.get("tool")
+
+            # Task created
             self.trace.add_event(
-            "TASK_CREATED",
-            "Agent created a task for execution.",
+                "TASK_CREATED",
+                "Agent created a task for execution.",
                 {
                     "task_id": task_id,
                     "tool": tool_name,
                     "description": task.get("description")
                 }
-                        )
-            
-            
-                    
+            )
 
+            # Human approval check
             approval = self.approval.check_approval(
                 tool_name,
                 task_inputs.get(task_id, {})
             )
+
             self.trace.add_event(
-                
-            "APPROVAL_CHECK",
-            "Agent checked whether human approval is required.",
+                "APPROVAL_CHECK",
+                "Agent checked whether human approval is required.",
                 {
                     "task_id": task_id,
                     "tool": tool_name,
@@ -84,7 +88,18 @@ class Orchestrator:
                 }
             )
 
+            # Stop execution when human approval is required
             if approval["status"] == "approval_required":
+
+                self.trace.add_event(
+                    "APPROVAL_REQUIRED",
+                    "Agent paused execution and requested human approval.",
+                    {
+                        "task_id": task_id,
+                        "tool": tool_name
+                    }
+                )
+
                 return {
                     "status": "approval_required",
                     "plan": plan,
@@ -95,40 +110,44 @@ class Orchestrator:
                     "recovery_results": recovery_results
                 }
 
+            # Tool execution
             result = self.executor.execute_task(
                 task,
                 task_inputs.get(task_id, {})
             )
+
             self.trace.add_event(
-            "TOOL_EXECUTION",
-            "Agent executed the selected tool.",
-    {
-            "task_id": task_id,
-            "tool": tool_name,
-            "status": result.get("status")
-    }
+                "TOOL_EXECUTION",
+                "Agent executed the selected tool.",
+                {
+                    "task_id": task_id,
+                    "tool": tool_name,
+                    "status": result.get("status")
+                }
             )
 
             execution_results.append(result)
 
+            # Validation
             validation = self.validator.validate_task_result(
-            task,
-            result
-)
+                task,
+                result
+            )
 
             self.trace.add_event(
-            "VALIDATION",
-            "Agent validated the tool result.",
-    {
-            "task_id": task_id,
-            "tool": tool_name,
-            "status": validation.get("status"),
-            "issues": validation.get("issues", [])
-    }
-)
+                "VALIDATION",
+                "Agent validated the tool result.",
+                {
+                    "task_id": task_id,
+                    "tool": tool_name,
+                    "status": validation.get("status"),
+                    "issues": validation.get("issues", [])
+                }
+            )
 
             validation_results.append(validation)
 
+            # Recovery
             if validation["status"] == "failed":
 
                 recovery_state = {
@@ -141,9 +160,34 @@ class Orchestrator:
                     recovery_state
                 )
 
+                self.trace.add_event(
+                    "RECOVERY",
+                    "Agent evaluated recovery or retry strategy.",
+                    {
+                        "task_id": task_id,
+                        "tool": tool_name,
+                        "status": recovery_result.get("status"),
+                        "strategy": recovery_result.get("strategy"),
+                        "retry_count": recovery_result.get(
+                            "retry_count",
+                            0
+                        )
+                    }
+                )
+
                 recovery_results.append(recovery_result)
 
                 if recovery_result["status"] != "retry":
+
+                    self.trace.add_event(
+                        "FINAL_RESPONSE",
+                        "Agent completed with a failed status.",
+                        {
+                            "status": "failed",
+                            "task_count": len(tasks)
+                        }
+                    )
+
                     return {
                         "status": "failed",
                         "plan": plan,
@@ -152,10 +196,20 @@ class Orchestrator:
                         "recovery_results": recovery_results
                     }
 
+        # Final successful response
+        self.trace.add_event(
+            "FINAL_RESPONSE",
+            "Agent completed the request successfully.",
+            {
+                "status": "success",
+                "task_count": len(tasks)
+            }
+        )
+
         return {
             "status": "success",
             "plan": plan,
             "execution_results": execution_results,
             "validation_results": validation_results,
             "recovery_results": recovery_results
-        }
+            }
