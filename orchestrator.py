@@ -5,6 +5,7 @@ from executor import Executor
 from validator import Validator
 from recovery import RecoveryEngine
 from approval import ApprovalManager
+from trace import AgentTrace
 
 
 class Orchestrator:
@@ -15,6 +16,7 @@ class Orchestrator:
         self.validator = Validator()
         self.recovery = RecoveryEngine()
         self.approval = ApprovalManager()
+        self.trace = AgentTrace()
 
     def run(
         self,
