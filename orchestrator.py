@@ -68,6 +68,18 @@ class Orchestrator:
             approval = self.approval.check_approval(
                 tool_name,
                 task_inputs.get(task_id, {})
+            )   self.trace.add_event(
+                "APPROVAL_CHECK",
+                "Agent checked whether human approval is required.",
+                {
+                    "task_id": task_id,
+                    "tool": tool_name,
+                    "approval_required": approval.get(
+                        "approval_required",
+                        False
+                    ),
+                    "status": approval.get("status")
+                }
             )
 
             if approval["status"] == "approval_required":
