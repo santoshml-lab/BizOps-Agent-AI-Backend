@@ -1,6 +1,7 @@
 from typing import Dict
 
 from base import BaseTool
+from calculator import CalculatorTool
 
 
 TOOL_REGISTRY: Dict[str, BaseTool] = {}
@@ -17,3 +18,6 @@ def get_tool(tool_name: str) -> BaseTool:
         raise ValueError(f"Tool not found: {tool_name}")
 
     return tool
+
+
+register_tool(CalculatorTool())
