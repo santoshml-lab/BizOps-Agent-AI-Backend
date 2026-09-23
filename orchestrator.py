@@ -99,6 +99,15 @@ class Orchestrator:
                 task,
                 task_inputs.get(task_id, {})
             )
+            self.trace.add_event(
+            "TOOL_EXECUTION",
+            "Agent executed the selected tool.",
+    {
+            "task_id": task_id,
+            "tool": tool_name,
+            "status": result.get("status")
+    }
+            )
 
             execution_results.append(result)
 
