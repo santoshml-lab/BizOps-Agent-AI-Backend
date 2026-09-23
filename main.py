@@ -6,6 +6,7 @@ from registry import get_tool
 from planner import Planner
 from executor import Executor
 from validator import Validator
+from recovery import RecoveryEngine
 
 
 app = FastAPI(
@@ -73,4 +74,24 @@ def validate_task(input_data: Dict[str, Any]):
     return validator.validate_task_result(
         task,
         result
+    )
+
+
+@app.post("/agent/recover")
+def recover_task(input_data: Dict[str, Any]):
+    task = input_data.get("task")
+    result = input_data.get("result")
+    recovery_state = input_data.get(
+        "recovery_state",
+        {
+            "retry_count": 0
+        }
+    )
+
+    recovery_engine = RecoveryEngine()
+
+    return recovery_engine.recover(
+        task,
+        result,
+        recovery_state
     )
