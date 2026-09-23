@@ -23,7 +23,7 @@ class Orchestrator:
         self.memory = memory_manager or MemoryManager()
         self.trace = AgentTrace()
         self.response_builder = ResponseBuilder()
-        self.response_builder = ResponseBuilder()
+        self.result_aggregator = ResultAggregator()
         self.input_resolver = InputResolver()
 
     def run(
