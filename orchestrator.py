@@ -10,6 +10,7 @@ from trace import AgentTrace
 from response_builder import ResponseBuilder
 from input_resolver import InputResolver
 from result_aggregator import ResultAggregator
+from business_reasoning import BusinessReasoning
 
 
 class Orchestrator:
@@ -25,6 +26,8 @@ class Orchestrator:
         self.response_builder = ResponseBuilder()
         self.result_aggregator = ResultAggregator()
         self.input_resolver = InputResolver()
+        self.business_reasoning = BusinessReasoning()
+        
 
     def run(
         self,
@@ -380,6 +383,23 @@ class Orchestrator:
     {
             "status": aggregated_result.get("status"),
             "count": aggregated_result.get("count", 0)
+    }
+)
+        reasoning_result = self.business_reasoning.reason(
+            aggregated_result
+)
+
+       self.trace.add_event(
+           "BUSINESS_REASONING",
+           "Agent generated business reasoning from aggregated results.",
+    {
+        "status": reasoning_result.get("status"),
+        "insight_count": len(
+            reasoning_result.get("insights", [])
+        ),
+        "recommendation_count": len(
+            reasoning_result.get("recommendations", [])
+        )
     }
 )
 
