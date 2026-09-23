@@ -12,14 +12,20 @@ class BusinessReasoning:
             return {
                 "status": "failed",
                 "insights": [],
+                "business_concern": None,
+                "evidence_gaps": [],
                 "recommendations": [],
-                "issues": ["Aggregated result is empty."]
+                "issues": [
+                    "Aggregated result is empty."
+                ]
             }
 
         if aggregated_result.get("status") != "success":
             return {
                 "status": "failed",
                 "insights": [],
+                "business_concern": None,
+                "evidence_gaps": [],
                 "recommendations": [],
                 "issues": [
                     "Aggregated result is not valid."
@@ -33,10 +39,13 @@ class BusinessReasoning:
 
         insights: List[str] = []
         recommendations: List[str] = []
+        evidence_gaps: List[str] = []
         issues: List[str] = []
 
         data_analysis_found = False
         web_search_found = False
+
+        business_concern = None
 
         for result in results:
 
@@ -45,6 +54,10 @@ class BusinessReasoning:
 
             tool = result.get("tool")
             output = result.get("output") or {}
+
+            # ---------------------------------
+            # DATA ANALYSIS REASONING
+            # ---------------------------------
 
             if tool == "data_analysis":
 
@@ -55,12 +68,17 @@ class BusinessReasoning:
                     {}
                 )
 
-                for column, summary in numeric_summary.items():
+                sales_summary = numeric_summary.get(
+                    "sales"
+                )
 
-                    total = summary.get("sum")
-                    average = summary.get("average")
-                    minimum = summary.get("minimum")
-                    maximum = summary.get("maximum")
+                if sales_summary:
+
+                    total = sales_summary.get("sum")
+                    average = sales_summary.get("average")
+                    minimum = sales_summary.get("minimum")
+                    maximum = sales_summary.get("maximum")
+                    count = sales_summary.get("count")
 
                     if all(
                         value is not None
@@ -71,22 +89,50 @@ class BusinessReasoning:
                             maximum
                         ]
                     ):
+
                         insights.append(
-                            f"{column.capitalize()} has a total "
-                            f"of {total}, an average of "
-                            f"{average}, a minimum of "
-                            f"{minimum}, and a maximum of "
-                            f"{maximum}."
+                            f"Recorded sales total {total}, "
+                            f"with an average of {average}, "
+                            f"ranging from {minimum} to {maximum}."
                         )
 
-                row_count = output.get("row_count")
+                    # Identify product-level spread.
+                    if (
+                        minimum is not None
+                        and maximum is not None
+                        and maximum > minimum
+                    ):
 
-                if row_count is not None and row_count < 5:
-                    insights.append(
-                        "The available dataset is small, "
-                        "so strong business trend conclusions "
-                        "should be treated cautiously."
-                    )
+                        spread = maximum - minimum
+
+                        insights.append(
+                            f"The gap between the highest "
+                            f"and lowest recorded sales is "
+                            f"{spread} units."
+                        )
+
+                    # Detect limited observations.
+                    if count is not None and count < 5:
+
+                        insights.append(
+                            "The available sales dataset contains "
+                            "few observations, so persistent "
+                            "performance trends cannot yet be established."
+                        )
+
+                        evidence_gaps.append(
+                            "Historical sales by product"
+                        )
+
+                        business_concern = (
+                            "The available sales data is insufficient "
+                            "to determine whether the observed product "
+                            "performance gap is persistent or temporary."
+                        )
+
+            # ---------------------------------
+            # WEB SEARCH REASONING
+            # ---------------------------------
 
             elif tool == "web_search":
 
@@ -98,21 +144,48 @@ class BusinessReasoning:
                 )
 
                 if search_results:
+
                     insights.append(
                         f"External research returned "
                         f"{len(search_results)} results "
                         "relevant to the business request."
                     )
 
-        if data_analysis_found and web_search_found:
+        # ---------------------------------
+        # NEXT INVESTIGATION
+        # ---------------------------------
+
+        if data_analysis_found:
 
             recommendations.append(
-                "Combine the internal sales metrics with "
-                "time-based and market-level data before "
-                "making strategic decisions."
+                "Investigate historical product-level sales "
+                "over the last 6–12 months to determine whether "
+                "the observed performance gap is persistent, "
+                "improving, or declining."
             )
 
+        # ---------------------------------
+        # MARKET CONTEXT
+        # ---------------------------------
+
+        if data_analysis_found and web_search_found:
+
+            evidence_gaps.append(
+                "Product-specific market and competitive data"
+            )
+
+            recommendations.append(
+                "Compare the internal product performance "
+                "with product-specific market and competitor "
+                "data before making strategic decisions."
+            )
+
+        # ---------------------------------
+        # FALLBACK
+        # ---------------------------------
+
         if not insights:
+
             issues.append(
                 "No actionable business insight could be "
                 "derived from the available results."
@@ -123,6 +196,8 @@ class BusinessReasoning:
         return {
             "status": status,
             "insights": insights,
+            "business_concern": business_concern,
+            "evidence_gaps": evidence_gaps,
             "recommendations": recommendations,
             "issues": issues
         }
