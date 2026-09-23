@@ -8,6 +8,7 @@ from executor import Executor
 from validator import Validator
 from recovery import RecoveryEngine
 from memory import MemoryManager
+from approval import ApprovalManager
 
 
 app = FastAPI(
@@ -123,4 +124,17 @@ def get_memory(input_data: Dict[str, Any]):
     return memory_manager.get_relevant_memory(
         session_id,
         key
+    )
+
+
+@app.post("/agent/approval")
+def check_approval(input_data: Dict[str, Any]):
+    action = input_data.get("action")
+    action_input = input_data.get("input", {})
+
+    approval_manager = ApprovalManager()
+
+    return approval_manager.check_approval(
+        action,
+        action_input
     )
