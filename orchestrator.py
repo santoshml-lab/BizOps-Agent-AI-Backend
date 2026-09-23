@@ -7,6 +7,7 @@ from recovery import RecoveryEngine
 from approval import ApprovalManager
 from memory import MemoryManager
 from trace import AgentTrace
+from response_builder import ResponseBuilder
 
 
 class Orchestrator:
@@ -19,6 +20,8 @@ class Orchestrator:
         self.approval = ApprovalManager()
         self.memory = memory_manager or MemoryManager()
         self.trace = AgentTrace()
+        self.response_builder = ResponseBuilder()
+        
 
     def run(
         self,
