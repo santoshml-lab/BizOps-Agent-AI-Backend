@@ -389,9 +389,9 @@ class Orchestrator:
             aggregated_result
 )
 
-       self.trace.add_event(
-           "BUSINESS_REASONING",
-           "Agent generated business reasoning from aggregated results.",
+        self.trace.add_event(
+            "BUSINESS_REASONING",
+            "Agent generated business reasoning from aggregated results.",
     {
         "status": reasoning_result.get("status"),
         "insight_count": len(
