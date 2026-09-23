@@ -1,4 +1,9 @@
+from typing import Any, Dict
+
 from fastapi import FastAPI
+
+from registry import get_tool
+
 
 app = FastAPI(
     title="BizOps Agent AI",
@@ -13,3 +18,9 @@ def root():
         "status": "success",
         "message": "BizOps Agent AI API is running"
     }
+
+
+@app.post("/tools/calculator")
+def calculate(input_data: Dict[str, Any]):
+    calculator = get_tool("calculator")
+    return calculator.execute(input_data)
