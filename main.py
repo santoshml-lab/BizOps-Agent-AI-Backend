@@ -7,6 +7,7 @@ from planner import Planner
 from executor import Executor
 from validator import Validator
 from recovery import RecoveryEngine
+from memory import MemoryManager
 
 
 app = FastAPI(
@@ -14,6 +15,9 @@ app = FastAPI(
     description="Agentic AI system for business operations",
     version="1.0.0"
 )
+
+
+memory_manager = MemoryManager()
 
 
 @app.get("/")
@@ -81,6 +85,7 @@ def validate_task(input_data: Dict[str, Any]):
 def recover_task(input_data: Dict[str, Any]):
     task = input_data.get("task")
     result = input_data.get("result")
+
     recovery_state = input_data.get(
         "recovery_state",
         {
@@ -94,4 +99,28 @@ def recover_task(input_data: Dict[str, Any]):
         task,
         result,
         recovery_state
+    )
+
+
+@app.post("/memory/add")
+def add_memory(input_data: Dict[str, Any]):
+    session_id = input_data.get("session_id")
+    key = input_data.get("key")
+    value = input_data.get("value")
+
+    return memory_manager.add_memory(
+        session_id,
+        key,
+        value
+    )
+
+
+@app.post("/memory/get")
+def get_memory(input_data: Dict[str, Any]):
+    session_id = input_data.get("session_id")
+    key = input_data.get("key")
+
+    return memory_manager.get_relevant_memory(
+        session_id,
+        key
     )
