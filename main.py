@@ -12,6 +12,7 @@ from approval import ApprovalManager
 from orchestrator import Orchestrator
 from input_resolver import InputResolver
 from result_aggregator import ResultAggregator
+from business_reasoning import BusinessReasoning
 
 
 app = FastAPI(
@@ -197,6 +198,20 @@ def aggregate_test(input_data: Dict[str, Any]):
 
     return aggregator.aggregate(
         execution_results
+    )
+
+@app.post("/agent/reason-test")
+def reason_test(input_data: Dict[str, Any]):
+
+    aggregated_result = input_data.get(
+        "aggregated_result",
+        {}
+    )
+
+    reasoning = BusinessReasoning()
+
+    return reasoning.reason(
+        aggregated_result
     )
 
 
