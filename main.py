@@ -140,7 +140,6 @@ def check_approval(input_data: Dict[str, Any]):
         action_input
     )
 
-
 @app.post("/agent/run")
 def run_agent(input_data: Dict[str, Any]):
     user_request = input_data.get("request")
@@ -148,7 +147,16 @@ def run_agent(input_data: Dict[str, Any]):
 
     orchestrator = Orchestrator()
 
-    return orchestrator.run(
+    result = orchestrator.run(
         user_request,
         task_inputs
     )
+
+    result["trace"] = orchestrator.trace.get_trace()
+
+    return result
+
+
+
+
+        
