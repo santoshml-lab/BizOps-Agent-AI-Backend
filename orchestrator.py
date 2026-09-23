@@ -24,9 +24,25 @@ class Orchestrator:
         task_inputs: Dict[str, Dict[str, Any]]
     ) -> Dict[str, Any]:
 
+        self.trace.add_event(
+        "PLANNING",
+        "Agent is creating an execution plan.",
+    {
+        "user_request": user_request
+    }
+)
+
         plan = self.planner.plan(user_request)
 
         tasks = plan.get("tasks", [])
+        self.trace.add_event(
+        "PLAN_CREATED",
+        "Execution plan created successfully.",
+    {
+        "task_count": len(tasks),
+        "tasks": tasks
+    }
+        )
 
         execution_results = []
         validation_results = []
