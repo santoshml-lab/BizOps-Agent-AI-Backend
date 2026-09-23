@@ -112,9 +112,20 @@ class Orchestrator:
             execution_results.append(result)
 
             validation = self.validator.validate_task_result(
-                task,
-                result
-            )
+            task,
+            result
+)
+
+            self.trace.add_event(
+            "VALIDATION",
+            "Agent validated the tool result.",
+    {
+            "task_id": task_id,
+            "tool": tool_name,
+            "status": validation.get("status"),
+            "issues": validation.get("issues", [])
+    }
+)
 
             validation_results.append(validation)
 
