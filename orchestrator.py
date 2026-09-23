@@ -11,14 +11,15 @@ from trace import AgentTrace
 
 class Orchestrator:
 
-    def __init__(self):
-        self.planner = Planner()
-        self.executor = Executor()
-        self.validator = Validator()
-        self.recovery = RecoveryEngine()
-        self.approval = ApprovalManager()
-        self.memory = MemoryManager()
-        self.trace = AgentTrace()
+    def __init__(self, memory_manager=None):
+    self.planner = Planner()
+    self.executor = Executor()
+    self.validator = Validator()
+    self.recovery = RecoveryEngine()
+    self.approval = ApprovalManager()
+    self.memory = memory_manager or MemoryManager()
+    self.trace = AgentTrace()
+        
 
     def run(
         self,
