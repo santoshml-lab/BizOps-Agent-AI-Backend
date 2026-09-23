@@ -11,6 +11,7 @@ from memory import MemoryManager
 from approval import ApprovalManager
 from orchestrator import Orchestrator
 from input_resolver import InputResolver
+from result_aggregator import ResultAggregator
 
 
 app = FastAPI(
@@ -183,6 +184,20 @@ def run_agent(input_data: Dict[str, Any]):
     result["trace"] = orchestrator.trace.get_trace()
 
     return result
+
+@app.post("/agent/aggregate-test")
+def aggregate_test(input_data: Dict[str, Any]):
+
+    execution_results = input_data.get(
+        "execution_results",
+        []
+    )
+
+    aggregator = ResultAggregator()
+
+    return aggregator.aggregate(
+        execution_results
+    )
 
 
 
