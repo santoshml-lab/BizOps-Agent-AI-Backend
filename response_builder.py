@@ -14,9 +14,12 @@ class ResponseBuilder:
 
         insights = []
         recommendations = []
+        evidence_gaps = []
+        business_concern = None
 
         # 1. Use Business Reasoning results when available.
         if reasoning_result:
+
             insights.extend(
                 reasoning_result.get(
                     "insights",
@@ -29,6 +32,17 @@ class ResponseBuilder:
                     "recommendations",
                     []
                 )
+            )
+
+            evidence_gaps.extend(
+                reasoning_result.get(
+                    "evidence_gaps",
+                    []
+                )
+            )
+
+            business_concern = reasoning_result.get(
+                "business_concern"
             )
 
         # 2. Fallback to execution-level insights
@@ -111,16 +125,34 @@ class ResponseBuilder:
 
         final_response = " ".join(insights)
 
+        if business_concern:
+
+            final_response += (
+                " Main business concern: "
+                + business_concern
+            )
+
+        if evidence_gaps:
+
+            final_response += (
+                " Evidence gaps: "
+                + "; ".join(evidence_gaps)
+                + "."
+            )
+
         if recommendations:
 
-            final_response += " " + " ".join(
-                recommendations
+            final_response += (
+                " Recommended next steps: "
+                + " ".join(recommendations)
             )
 
         return {
             "status": "success",
             "user_request": user_request,
             "insights": insights,
+            "business_concern": business_concern,
+            "evidence_gaps": evidence_gaps,
             "recommendations": recommendations,
             "final_response": final_response
         }
