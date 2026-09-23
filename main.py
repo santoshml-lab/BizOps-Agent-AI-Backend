@@ -29,3 +29,8 @@ def calculate(input_data: Dict[str, Any]):
 def data_analysis(input_data: Dict[str, Any]):
     data_tool = get_tool("data_analysis")
     return data_tool.execute(input_data)
+
+@app.post("/tools/web-search")
+def web_search(input_data: Dict[str, Any]):
+    search_tool = get_tool("web_search")
+    return search_tool.execute(input_data)
