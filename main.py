@@ -10,6 +10,7 @@ from recovery import RecoveryEngine
 from memory import MemoryManager
 from approval import ApprovalManager
 from orchestrator import Orchestrator
+from input_resolver import InputResolver
 
 
 app = FastAPI(
