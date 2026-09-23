@@ -14,6 +14,11 @@ class BusinessReasoning:
                 "insights": [],
                 "business_concern": None,
                 "evidence_gaps": [],
+                "investigation": {
+                    "required": False,
+                    "reason": None,
+                    "questions": []
+                },
                 "recommendations": [],
                 "issues": [
                     "Aggregated result is empty."
@@ -26,6 +31,11 @@ class BusinessReasoning:
                 "insights": [],
                 "business_concern": None,
                 "evidence_gaps": [],
+                "investigation": {
+                    "required": False,
+                    "reason": None,
+                    "questions": []
+                },
                 "recommendations": [],
                 "issues": [
                     "Aggregated result is not valid."
@@ -47,6 +57,20 @@ class BusinessReasoning:
 
         business_concern = None
 
+        # ---------------------------------
+        # INVESTIGATION STATE
+        # ---------------------------------
+
+        investigation = {
+            "required": False,
+            "reason": None,
+            "questions": []
+        }
+
+        # ---------------------------------
+        # PROCESS TOOL RESULTS
+        # ---------------------------------
+
         for result in results:
 
             if result.get("status") != "success":
@@ -56,7 +80,7 @@ class BusinessReasoning:
             output = result.get("output") or {}
 
             # ---------------------------------
-            # DATA ANALYSIS REASONING
+            # DATA ANALYSIS
             # ---------------------------------
 
             if tool == "data_analysis":
@@ -96,7 +120,7 @@ class BusinessReasoning:
                             f"ranging from {minimum} to {maximum}."
                         )
 
-                    # Identify product-level spread.
+                    # Product performance spread
                     if (
                         minimum is not None
                         and maximum is not None
@@ -111,7 +135,7 @@ class BusinessReasoning:
                             f"{spread} units."
                         )
 
-                    # Detect limited observations.
+                    # Small dataset detection
                     if count is not None and count < 5:
 
                         insights.append(
@@ -130,8 +154,25 @@ class BusinessReasoning:
                             "performance gap is persistent or temporary."
                         )
 
+                        # ---------------------------------
+                        # INVESTIGATION DECISION
+                        # ---------------------------------
+
+                        investigation["required"] = True
+
+                        investigation["reason"] = (
+                            "Historical product-level sales data "
+                            "is missing, so the persistence of the "
+                            "observed performance gap cannot be established."
+                        )
+
+                        investigation["questions"].append(
+                            "Is the product performance gap persistent "
+                            "or temporary?"
+                        )
+
             # ---------------------------------
-            # WEB SEARCH REASONING
+            # WEB SEARCH
             # ---------------------------------
 
             elif tool == "web_search":
@@ -152,10 +193,25 @@ class BusinessReasoning:
                     )
 
         # ---------------------------------
-        # NEXT INVESTIGATION
+        # MARKET / COMPETITOR EVIDENCE GAP
         # ---------------------------------
 
-        if data_analysis_found:
+        if data_analysis_found and web_search_found:
+
+            evidence_gaps.append(
+                "Product-specific market and competitive data"
+            )
+
+            investigation["questions"].append(
+                "How does each product's performance compare "
+                "with relevant market or competitor trends?"
+            )
+
+        # ---------------------------------
+        # NEXT INVESTIGATION RECOMMENDATIONS
+        # ---------------------------------
+
+        if investigation["required"]:
 
             recommendations.append(
                 "Investigate historical product-level sales "
@@ -164,15 +220,7 @@ class BusinessReasoning:
                 "improving, or declining."
             )
 
-        # ---------------------------------
-        # MARKET CONTEXT
-        # ---------------------------------
-
         if data_analysis_found and web_search_found:
-
-            evidence_gaps.append(
-                "Product-specific market and competitive data"
-            )
 
             recommendations.append(
                 "Compare the internal product performance "
@@ -198,6 +246,7 @@ class BusinessReasoning:
             "insights": insights,
             "business_concern": business_concern,
             "evidence_gaps": evidence_gaps,
+            "investigation": investigation,
             "recommendations": recommendations,
             "issues": issues
         }
