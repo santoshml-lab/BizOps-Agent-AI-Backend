@@ -32,15 +32,38 @@ class InputResolver:
         # 2. Resolve web search input.
         if tool_name == "web_search":
 
-            return {
-                "status": "success",
-                "task_id": task_id,
-                "tool": tool_name,
-                "input": {
-                    "query": user_request
-                },
-                "source": "user_request"
-            }
+            search_query = user_request
+
+            if any(
+                phrase in user_request.lower()
+                for phrase in [
+                    "market trends",
+                    "market trend",
+                    "sales trends",
+                    "sales trend",
+                    "competitor",
+                    "competition",
+                    "industry trends",
+        ]
+    ):
+
+               search_query = (
+                   "current business market trends "
+                   "and sales trends 2026"
+        )
+
+       return {
+           "status": "success",
+           "task_id": task_id,
+           "tool": tool_name,
+           "input": {
+               "query": search_query
+        },
+        "source": "task_specific"
+    }
+
+            
+            
 
         # 3. Calculator requires an explicit expression.
         if tool_name == "calculator":
