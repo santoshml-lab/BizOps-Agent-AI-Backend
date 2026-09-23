@@ -4,6 +4,7 @@ from registry import get_tool
 
 
 class Executor:
+
     def execute_task(
         self,
         task: Dict[str, Any],
@@ -35,26 +36,26 @@ class Executor:
             result = tool.execute(input_data)
 
             if result.get("status") == "error":
+                return {
+                    "task_id": task_id,
+                    "tool": tool_name,
+                    "status": "error",
+                    "input": input_data,
+                    "output": result,
+                    "error": result.get(
+                        "error",
+                        "Tool execution failed."
+                    ),
+                }
+
             return {
-        "task_id": task_id,
-        "tool": tool_name,
-        "status": "error",
-        "input": input_data,
-        "output": result,
-        "error": result.get("error", "Tool execution failed."),
-    }
-
-return {
-    "task_id": task_id,
-    "tool": tool_name,
-    "status": "success",
-    "input": input_data,
-    "output": result,
-    "error": None,
-}
-
-            
-         
+                "task_id": task_id,
+                "tool": tool_name,
+                "status": "success",
+                "input": input_data,
+                "output": result,
+                "error": None,
+            }
 
         except Exception as error:
             return {
@@ -77,7 +78,10 @@ return {
         for task in tasks:
             task_id = task.get("task_id")
 
-            input_data = task_inputs.get(task_id, {})
+            input_data = task_inputs.get(
+                task_id,
+                {}
+            )
 
             result = self.execute_task(
                 task,
