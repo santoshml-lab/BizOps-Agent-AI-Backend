@@ -145,7 +145,9 @@ def run_agent(input_data: Dict[str, Any]):
     user_request = input_data.get("request")
     task_inputs = input_data.get("task_inputs", {})
 
-    orchestrator = Orchestrator()
+    orchestrator = Orchestrator(
+    memory_manager
+    )
 
     session_id = input_data.get(
     "session_id",
