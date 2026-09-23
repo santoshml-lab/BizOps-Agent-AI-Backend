@@ -15,9 +15,8 @@ from orchestrator import Orchestrator
 app = FastAPI(
     title="BizOps Agent AI",
     description="Agentic AI system for business operations",
-    version="1.0.0"
+    version="1.0.0",
 )
-
 
 memory_manager = MemoryManager()
 
@@ -26,7 +25,7 @@ memory_manager = MemoryManager()
 def root():
     return {
         "status": "success",
-        "message": "BizOps Agent AI API is running"
+        "message": "BizOps Agent AI API is running",
     }
 
 
@@ -66,7 +65,7 @@ def execute_task(input_data: Dict[str, Any]):
 
     return executor.execute_task(
         task,
-        tool_input
+        tool_input,
     )
 
 
@@ -79,7 +78,7 @@ def validate_task(input_data: Dict[str, Any]):
 
     return validator.validate_task_result(
         task,
-        result
+        result,
     )
 
 
@@ -91,8 +90,8 @@ def recover_task(input_data: Dict[str, Any]):
     recovery_state = input_data.get(
         "recovery_state",
         {
-            "retry_count": 0
-        }
+            "retry_count": 0,
+        },
     )
 
     recovery_engine = RecoveryEngine()
@@ -100,7 +99,7 @@ def recover_task(input_data: Dict[str, Any]):
     return recovery_engine.recover(
         task,
         result,
-        recovery_state
+        recovery_state,
     )
 
 
@@ -113,7 +112,7 @@ def add_memory(input_data: Dict[str, Any]):
     return memory_manager.add_memory(
         session_id,
         key,
-        value
+        value,
     )
 
 
@@ -124,7 +123,7 @@ def get_memory(input_data: Dict[str, Any]):
 
     return memory_manager.get_relevant_memory(
         session_id,
-        key
+        key,
     )
 
 
@@ -137,7 +136,7 @@ def check_approval(input_data: Dict[str, Any]):
 
     return approval_manager.check_approval(
         action,
-        action_input
+        action_input,
     )
 
 
@@ -148,17 +147,17 @@ def run_agent(input_data: Dict[str, Any]):
 
     session_id = input_data.get(
         "session_id",
-        "default_session"
+        "default_session",
     )
 
     orchestrator = Orchestrator(
-        memory_manager
+        memory_manager,
     )
 
     result = orchestrator.run(
         user_request,
         task_inputs,
-        session_id
+        session_id,
     )
 
     result["trace"] = orchestrator.trace.get_trace()
