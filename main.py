@@ -9,6 +9,7 @@ from validator import Validator
 from recovery import RecoveryEngine
 from memory import MemoryManager
 from approval import ApprovalManager
+from orchestrator import Orchestrator
 
 
 app = FastAPI(
@@ -137,4 +138,17 @@ def check_approval(input_data: Dict[str, Any]):
     return approval_manager.check_approval(
         action,
         action_input
+    )
+
+
+@app.post("/agent/run")
+def run_agent(input_data: Dict[str, Any]):
+    user_request = input_data.get("request")
+    task_inputs = input_data.get("task_inputs", {})
+
+    orchestrator = Orchestrator()
+
+    return orchestrator.run(
+        user_request,
+        task_inputs
     )
