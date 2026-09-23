@@ -1,15 +1,26 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class Planner:
-    def plan(self, user_request: str) -> Dict[str, Any]:
+
+    def plan(
+        self,
+        user_request: str,
+        memory: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
 
         if not user_request or not user_request.strip():
             raise ValueError("User request is required.")
 
         request = user_request.lower()
 
+        memory = memory or []
+
         tasks: List[Dict[str, Any]] = []
+
+        # ---------------------------------------------------------
+        # Calculator
+        # ---------------------------------------------------------
 
         if any(word in request for word in [
             "calculate",
@@ -26,6 +37,10 @@ class Planner:
                 "status": "pending",
             })
 
+        # ---------------------------------------------------------
+        # Data Analysis
+        # ---------------------------------------------------------
+
         if any(word in request for word in [
             "analyze",
             "analysis",
@@ -39,6 +54,10 @@ class Planner:
                 "tool": "data_analysis",
                 "status": "pending",
             })
+
+        # ---------------------------------------------------------
+        # Web Search
+        # ---------------------------------------------------------
 
         if any(word in request for word in [
             "search",
@@ -54,6 +73,10 @@ class Planner:
                 "tool": "web_search",
                 "status": "pending",
             })
+
+        # ---------------------------------------------------------
+        # High-impact actions
+        # ---------------------------------------------------------
 
         if any(word in request for word in [
             "send email",
@@ -106,6 +129,10 @@ class Planner:
                 "status": "pending",
             })
 
+        # ---------------------------------------------------------
+        # Fallback
+        # ---------------------------------------------------------
+
         if not tasks:
             tasks.append({
                 "task_id": "task_1",
@@ -117,5 +144,6 @@ class Planner:
         return {
             "status": "success",
             "user_request": user_request,
+            "memory_context": memory,
             "tasks": tasks,
         }
