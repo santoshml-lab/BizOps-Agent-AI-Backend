@@ -3,6 +3,7 @@ from typing import Any, Dict
 from fastapi import FastAPI
 
 from registry import get_tool
+from planner import Planner
 
 
 app = FastAPI(
@@ -34,3 +35,11 @@ def data_analysis(input_data: Dict[str, Any]):
 def web_search(input_data: Dict[str, Any]):
     search_tool = get_tool("web_search")
     return search_tool.execute(input_data)
+
+@app.post("/agent/plan")
+def create_plan(input_data: Dict[str, Any]):
+    user_request = input_data.get("request")
+
+    planner = Planner()
+
+    return planner.plan(user_request)
