@@ -13,9 +13,9 @@ from orchestrator import Orchestrator
 
 
 app = FastAPI(
-title="BizOps Agent AI",
-description="Agentic AI system for business operations",
-version="1.0.0"
+    title="BizOps Agent AI",
+    description="Agentic AI system for business operations",
+    version="1.0.0"
 )
 
 
@@ -140,28 +140,26 @@ def check_approval(input_data: Dict[str, Any]):
         action_input
     )
 
+
 @app.post("/agent/run")
 def run_agent(input_data: Dict[str, Any]):
     user_request = input_data.get("request")
     task_inputs = input_data.get("task_inputs", {})
 
-    orchestrator = Orchestrator(
-    memory_manager
+    session_id = input_data.get(
+        "session_id",
+        "default_session"
     )
 
-    session_id = input_data.get(
-    "session_id",
-    "default_session"
-)
+    orchestrator = Orchestrator(
+        memory_manager
+    )
 
     result = orchestrator.run(
-    user_request,
-    task_inputs,
-    session_id
-)
-        
-        
-    
+        user_request,
+        task_inputs,
+        session_id
+    )
 
     result["trace"] = orchestrator.trace.get_trace()
 
