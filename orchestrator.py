@@ -8,6 +8,7 @@ from approval import ApprovalManager
 from memory import MemoryManager
 from trace import AgentTrace
 from response_builder import ResponseBuilder
+from input_resolver import InputResolver
 
 
 class Orchestrator:
@@ -21,6 +22,7 @@ class Orchestrator:
         self.memory = memory_manager or MemoryManager()
         self.trace = AgentTrace()
         self.response_builder = ResponseBuilder()
+        self.input_resolver = InputResolver()
 
     def run(
         self,
@@ -28,6 +30,10 @@ class Orchestrator:
         task_inputs: Dict[str, Dict[str, Any]],
         session_id: str = "default_session"
     ) -> Dict[str, Any]:
+
+        # -------------------------------------------------
+        # MEMORY
+        # -------------------------------------------------
 
         self.trace.add_event(
             "MEMORY_RETRIEVAL",
@@ -55,6 +61,10 @@ class Orchestrator:
                 "memory": memory_context
             }
         )
+
+        # -------------------------------------------------
+        # PLANNING
+        # -------------------------------------------------
 
         self.trace.add_event(
             "PLANNING",
@@ -88,6 +98,10 @@ class Orchestrator:
         validation_results = []
         recovery_results = []
 
+        # -------------------------------------------------
+        # TASK EXECUTION
+        # -------------------------------------------------
+
         for task in tasks:
 
             task_id = task.get("task_id")
@@ -103,12 +117,66 @@ class Orchestrator:
                 }
             )
 
+            # -------------------------------------------------
+            # INPUT RESOLUTION
+            # -------------------------------------------------
+
+            resolved_input = self.input_resolver.resolve(
+                task=task,
+                user_request=user_request,
+                task_inputs=task_inputs
+            )
+
+            self.trace.add_event(
+                "INPUT_RESOLUTION",
+                "Agent resolved the input required for the task.",
+                {
+                    "task_id": task_id,
+                    "tool": tool_name,
+                    "status": resolved_input.get(
+                        "status"
+                    ),
+                    "source": resolved_input.get(
+                        "source"
+                    )
+                }
+            )
+
+            if resolved_input.get("status") != "success":
+
+                self.trace.add_event(
+                    "FINAL_RESPONSE",
+                    "Agent could not resolve the required task input.",
+                    {
+                        "status": "failed",
+                        "task_id": task_id,
+                        "tool": tool_name
+                    }
+                )
+
+                return {
+                    "status": "failed",
+                    "plan": plan,
+                    "memory_context": memory_context,
+                    "execution_results": execution_results,
+                    "validation_results": validation_results,
+                    "recovery_results": recovery_results,
+                    "input_resolution": resolved_input,
+                    "trace": self.trace.get_trace()
+                }
+
+            resolved_task_input = resolved_input.get(
+                "input",
+                {}
+            )
+
+            # -------------------------------------------------
+            # APPROVAL
+            # -------------------------------------------------
+
             approval = self.approval.check_approval(
                 tool_name,
-                task_inputs.get(
-                    task_id,
-                    {}
-                )
+                resolved_task_input
             )
 
             self.trace.add_event(
@@ -147,8 +215,13 @@ class Orchestrator:
                     "execution_results": execution_results,
                     "validation_results": validation_results,
                     "recovery_results": recovery_results,
+                    "input_resolution": resolved_input,
                     "trace": self.trace.get_trace()
                 }
+
+            # -------------------------------------------------
+            # RECOVERY STATE
+            # -------------------------------------------------
 
             recovery_state = {
                 "retry_count": 0
@@ -156,14 +229,15 @@ class Orchestrator:
 
             task_completed = False
 
+            # -------------------------------------------------
+            # EXECUTION + VALIDATION + RECOVERY
+            # -------------------------------------------------
+
             while True:
 
                 result = self.executor.execute_task(
                     task,
-                    task_inputs.get(
-                        task_id,
-                        {}
-                    )
+                    resolved_task_input
                 )
 
                 self.trace.add_event(
@@ -290,6 +364,10 @@ class Orchestrator:
             if task_completed:
                 continue
 
+        # -------------------------------------------------
+        # BUSINESS INSIGHT
+        # -------------------------------------------------
+
         response = self.response_builder.build(
             user_request=user_request,
             plan=plan,
@@ -315,6 +393,10 @@ class Orchestrator:
                 )
             }
         )
+
+        # -------------------------------------------------
+        # FINAL RESPONSE
+        # -------------------------------------------------
 
         self.trace.add_event(
             "FINAL_RESPONSE",
@@ -344,4 +426,4 @@ class Orchestrator:
                 "final_response"
             ),
             "trace": self.trace.get_trace()
-            }
+                }
