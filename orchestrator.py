@@ -19,6 +19,7 @@ class Orchestrator:
     self.approval = ApprovalManager()
     self.memory = memory_manager or MemoryManager()
     self.trace = AgentTrace()
+    
         
 
     def run(
