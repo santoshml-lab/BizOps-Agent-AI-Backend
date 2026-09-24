@@ -385,7 +385,7 @@ class Orchestrator:
             "count": aggregated_result.get("count", 0)
     }
 )
-       investigation = reasoning_result.get(
+        investigation = reasoning_result.get(
             "investigation",
             {}
         )
