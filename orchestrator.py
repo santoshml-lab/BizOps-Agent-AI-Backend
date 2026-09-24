@@ -385,11 +385,11 @@ class Orchestrator:
             "count": aggregated_result.get("count", 0)
     }
 )
-       reasoning_result = self.business_reasoning.reason(
-           aggregated_result
+        reasoning_result = self.business_reasoning.reason(
+            aggregated_result
         )
 
-       self.trace.add_event(
+        self.trace.add_event(
             "BUSINESS_REASONING",
             "Agent generated business reasoning from aggregated results.",
             {
@@ -403,12 +403,12 @@ class Orchestrator:
             }
         )
 
-        investigation = reasoning_result.get(
-            "investigation",
+         investigation = reasoning_result.get(
+             "investigation",
             {}
         )
 
-        if investigation.get("required"):
+         if investigation.get("required"):
 
             self.trace.add_event(
                 "INVESTIGATION_REQUIRED",
@@ -430,9 +430,9 @@ class Orchestrator:
 
         
 
-        response = self.response_builder.build(
-        user_request=user_request,
-        plan=plan,
+          response = self.response_builder.build(
+          user_request=user_request,
+          plan=plan,
         execution_results=execution_results,
         memory_context=memory_context,
         reasoning_result=reasoning_result
