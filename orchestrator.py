@@ -602,6 +602,94 @@ class Orchestrator:
                 "results": investigation_validation_results
             }
         )
+        # -------------------------------------------------
+        # INVESTIGATION REASONING FEEDBACK
+        # -------------------------------------------------
+
+        investigation_evidence = []
+
+        for investigation_result in investigation_results:
+
+            if investigation_result.get("status") != "success":
+                continue
+
+            output = investigation_result.get(
+                "output"
+            )
+
+            if not output:
+                continue
+
+            investigation_evidence.append({
+                "task_id": investigation_result.get(
+                    "task_id"
+                ),
+                "type": investigation_result.get(
+                    "type"
+                ),
+                "query": investigation_result.get(
+                    "query"
+                ),
+                "evidence": output
+            })
+
+        if investigation_evidence:
+
+            investigation_aggregated_result = {
+                "status": "success",
+                "count": len(
+                    investigation_evidence
+                ),
+                "results": [
+                    {
+                        "task_id": item.get(
+                            "task_id"
+                        ),
+                        "tool": "investigation",
+                        "status": "success",
+                        "output": item.get(
+                            "evidence"
+                        ),
+                        "error": None
+                    }
+                    for item in investigation_evidence
+                ]
+            }
+
+            re_reasoning_result = self.business_reasoning.reason(
+                investigation_aggregated_result
+            )
+
+            self.trace.add_event(
+                "RE_REASONING",
+                "Agent re-evaluated the business situation using validated investigation evidence.",
+                {
+                    "status": re_reasoning_result.get(
+                        "status"
+                    ),
+                    "insight_count": len(
+                        re_reasoning_result.get(
+                            "insights",
+                            []
+                        )
+                    ),
+                    "recommendation_count": len(
+                        re_reasoning_result.get(
+                            "recommendations",
+                            []
+                        )
+                    )
+                }
+            )
+
+            if re_reasoning_result.get(
+                "status"
+            ) in {
+                "success",
+                "partial"
+            }:
+
+                reasoning_result = re_reasoning_result
 
         
             
