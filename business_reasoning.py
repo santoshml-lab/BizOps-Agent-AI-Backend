@@ -183,6 +183,54 @@ class BusinessReasoning:
                     "results",
                     []
                 )
+           elif tool == "investigation":
+
+                investigation_output = output or {}
+
+                investigation_results = investigation_output.get(
+                    "results",
+                    []
+                )
+
+                if investigation_results:
+
+                    insights.append(
+                        f"Investigation returned "
+                        f"{len(investigation_results)} "
+                        "external evidence sources."
+                    )
+
+                    insights.append(
+                        "External research provides additional "
+                        "market context, but it does not establish "
+                        "whether the observed product sales gap "
+                        "is persistent."
+                    )
+
+                    evidence_gaps.append(
+                        "Historical product-level sales data"
+                    )
+
+                    business_concern = (
+                        "The available evidence provides market context, "
+                        "but historical product-level sales data is still "
+                        "required to determine whether the sales gap is "
+                        "persistent or temporary."
+                    )
+
+                    recommendations.append(
+                        "Collect historical product-level sales data "
+                        "over the last 6–12 months and compare the "
+                        "trend with the external market evidence."
+                    )
+
+
+                
+                            
+
+                
+
+                
 
                 if search_results:
 
