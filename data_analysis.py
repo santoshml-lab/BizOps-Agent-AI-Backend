@@ -8,43 +8,68 @@ class DataAnalysisTool(BaseTool):
     name = "data_analysis"
     description = "Performs basic analysis on business data."
 
-    def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        response = (
-        supabase
-        .table("orders")
-        .select("*")
-        .execute()
-)
+    def execute(
+        self,
+        input_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
-data = response.data
+        # Fetch business orders from Supabase
+        response = (
+            supabase
+            .table("orders")
+            .select("*")
+            .execute()
+        )
+
+        data = response.data
 
         if not data:
-            raise ValueError("Data is required.")
+            raise ValueError(
+                "No business data found in Supabase."
+            )
 
         if not isinstance(data, list):
-            raise ValueError("Data must be a list of records.")
+            raise ValueError(
+                "Data must be a list of records."
+            )
 
-        if not all(isinstance(row, dict) for row in data):
-            raise ValueError("Each record must be a dictionary.")
+        if not all(
+            isinstance(row, dict)
+            for row in data
+        ):
+            raise ValueError(
+                "Each record must be a dictionary."
+            )
 
         row_count = len(data)
 
-        columns = list(data[0].keys()) if data else []
+        columns = (
+            list(data[0].keys())
+            if data
+            else []
+        )
 
         numeric_summary = {}
 
         for column in columns:
+
             values = [
                 row[column]
                 for row in data
-                if isinstance(row.get(column), (int, float))
+                if isinstance(
+                    row.get(column),
+                    (int, float)
+                )
             ]
 
             if values:
+
                 numeric_summary[column] = {
                     "count": len(values),
                     "sum": sum(values),
-                    "average": sum(values) / len(values),
+                    "average": (
+                        sum(values) / len(values)
+                    ),
                     "minimum": min(values),
                     "maximum": max(values),
                 }
