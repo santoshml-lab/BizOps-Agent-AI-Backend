@@ -1,6 +1,7 @@
 from typing import Any, Dict
 
 from base import BaseTool
+from supabase_client import supabase
 
 
 class DataAnalysisTool(BaseTool):
