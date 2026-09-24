@@ -447,6 +447,30 @@ class Orchestrator:
                 }
             )
 
+            investigation_plan = self.investigation_planner.create_tasks(
+                investigation
+            )
+
+            self.trace.add_event(
+                "INVESTIGATION_PLANNED",
+                "Agent converted investigation questions into investigation tasks.",
+                {
+                    "status": investigation_plan.get(
+                        "status"
+                    ),
+                    "task_count": investigation_plan.get(
+                        "task_count",
+                        0
+                    ),
+                    "tasks": investigation_plan.get(
+                        "tasks",
+                        []
+                    )
+                }
+            )
+
+        
+
         # -------------------------------------------------
         # RESPONSE BUILDING
         # -------------------------------------------------
