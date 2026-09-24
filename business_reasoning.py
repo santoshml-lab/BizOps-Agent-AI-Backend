@@ -183,7 +183,7 @@ class BusinessReasoning:
                     "results",
                     []
                 )
-           elif tool == "investigation":
+            elif tool == "investigation":
 
                 investigation_output = output or {}
 
