@@ -385,26 +385,12 @@ class Orchestrator:
             "count": aggregated_result.get("count", 0)
     }
 )
-        investigation = reasoning_result.get(
-            "investigation",
-            {}
-        )
+        
+            
+            
+        
 
-        if investigation.get("required"):
-
-            self.trace.add_event(
-                "INVESTIGATION_REQUIRED",
-                "Agent determined that additional investigation is required.",
-                {
-                    "reason": investigation.get(
-                        "reason"
-                    ),
-                    "questions": investigation.get(
-                        "questions",
-                        []
-                    )
-                }
-            )
+        
 
             response = self.response_builder.build(
             user_request=user_request,
