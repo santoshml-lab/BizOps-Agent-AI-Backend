@@ -468,6 +468,57 @@ class Orchestrator:
                     )
                 }
             )
+            # -------------------------------------------------
+            # INVESTIGATION EXECUTION
+            # -------------------------------------------------
+
+            investigation_results = []
+
+            for investigation_task in investigation_plan.get(
+                "tasks",
+                []
+            ):
+
+                if investigation_task.get("type") == "data_request":
+
+                    investigation_results.append({
+                        "task_id": investigation_task.get(
+                            "task_id"
+                        ),
+                        "type": "data_request",
+                        "status": "waiting_for_data",
+                        "message": (
+                            "Additional internal business data "
+                            "is required to answer this investigation."
+                        )
+                    })
+
+                elif investigation_task.get(
+                    "type"
+                ) == "external_research":
+
+                    investigation_results.append({
+                        "task_id": investigation_task.get(
+                            "task_id"
+                        ),
+                        "type": "external_research",
+                        "status": "pending",
+                        "message": (
+                            "External investigation is ready "
+                            "for web search execution."
+                        )
+                    })
+
+            self.trace.add_event(
+                "INVESTIGATION_EXECUTION",
+                "Agent prepared investigation tasks for execution.",
+                {
+                    "task_count": len(
+                        investigation_results
+                    ),
+                    "results": investigation_results
+                }
+            )
 
         
 
