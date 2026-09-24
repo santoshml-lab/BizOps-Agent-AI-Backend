@@ -385,6 +385,44 @@ class Orchestrator:
             "count": aggregated_result.get("count", 0)
     }
 )
+       reasoning_result = self.business_reasoning.reason(
+           aggregated_result
+        )
+
+       self.trace.add_event(
+            "BUSINESS_REASONING",
+            "Agent generated business reasoning from aggregated results.",
+            {
+                "status": reasoning_result.get("status"),
+                "insight_count": len(
+                    reasoning_result.get("insights", [])
+                ),
+                "recommendation_count": len(
+                    reasoning_result.get("recommendations", [])
+                )
+            }
+        )
+
+        investigation = reasoning_result.get(
+            "investigation",
+            {}
+        )
+
+        if investigation.get("required"):
+
+            self.trace.add_event(
+                "INVESTIGATION_REQUIRED",
+                "Agent determined that additional investigation is required.",
+                {
+                    "reason": investigation.get(
+                        "reason"
+                    ),
+                    "questions": investigation.get(
+                        "questions",
+                        []
+                    )
+                }
+            )
         
             
             
@@ -392,12 +430,12 @@ class Orchestrator:
 
         
 
-            response = self.response_builder.build(
-            user_request=user_request,
-            plan=plan,
-            execution_results=execution_results,
-            memory_context=memory_context,
-            reasoning_result=reasoning_result
+        response = self.response_builder.build(
+        user_request=user_request,
+        plan=plan,
+        execution_results=execution_results,
+        memory_context=memory_context,
+        reasoning_result=reasoning_result
         )
             
         
