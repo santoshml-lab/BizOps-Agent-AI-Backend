@@ -423,52 +423,53 @@ class Orchestrator:
             }
         )
 
+
         # -------------------------------------------------
-        # INVESTIGATION CHECK
-        # -------------------------------------------------
+# INVESTIGATION CHECK
+# -------------------------------------------------
 
-        investigation = reasoning_result.get(
-            "investigation",
-            {}
-        )
+investigation = reasoning_result.get(
+    "investigation",
+    {}
+)
 
-        if investigation.get("required"):
+investigation_results = []
 
-            self.trace.add_event(
-                "INVESTIGATION_REQUIRED",
-                "Agent determined that additional investigation is required.",
-                {
-                    "reason": investigation.get(
-                        "reason"
-                    ),
-                    "questions": investigation.get(
-                        "questions",
-                        []
-                    )
-                }
+if investigation.get("required"):
+
+    self.trace.add_event(
+        "INVESTIGATION_REQUIRED",
+        "Agent determined that additional investigation is required.",
+        {
+            "reason": investigation.get(
+                "reason"
+            ),
+            "questions": investigation.get(
+                "questions",
+                []
             )
+        }
+    )
 
-            investigation_plan = self.investigation_planner.create_tasks(
-                investigation
-            )
 
-            self.trace.add_event(
-                "INVESTIGATION_PLANNED",
-                "Agent converted investigation questions into investigation tasks.",
-                {
-                    "status": investigation_plan.get(
-                        "status"
-                    ),
-                    "task_count": investigation_plan.get(
-                        "task_count",
-                        0
-                    ),
-                    "tasks": investigation_plan.get(
-                        "tasks",
-                        []
-                    )
-                }
-            )
+
+        
+        
+
+
+
+
+
+        
+
+        
+        
+        
+
+        
+            
+                    
+                   
             # -------------------------------------------------
             # INVESTIGATION EXECUTION
             # -------------------------------------------------
