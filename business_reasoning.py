@@ -56,6 +56,7 @@ class BusinessReasoning:
         web_search_found = False
 
         business_concern = None
+        search_results = []
 
         # ---------------------------------
         # INVESTIGATION STATE
