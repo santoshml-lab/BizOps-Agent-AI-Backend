@@ -11,6 +11,7 @@ from response_builder import ResponseBuilder
 from input_resolver import InputResolver
 from result_aggregator import ResultAggregator
 from business_reasoning import BusinessReasoning
+from investigation import InvestigationPlanner
 
 
 class Orchestrator:
@@ -27,6 +28,7 @@ class Orchestrator:
         self.result_aggregator = ResultAggregator()
         self.input_resolver = InputResolver()
         self.business_reasoning = BusinessReasoning()
+        self.investigation_planner = InvestigationPlanner()
 
     def run(
         self,
