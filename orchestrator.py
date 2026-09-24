@@ -14,6 +14,7 @@ from business_reasoning import BusinessReasoning
 from investigation import InvestigationPlanner
 
 
+
 class Orchestrator:
 
     def __init__(self, memory_manager=None):
