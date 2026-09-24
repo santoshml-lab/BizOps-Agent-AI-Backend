@@ -497,21 +497,50 @@ class Orchestrator:
                     "type"
                 ) == "external_research":
 
+                    investigation_query = (
+                        "Product sales performance for A, B, C "
+                        "and relevant market or competitor trends "
+                        "in 2026"
+                    )
+
+                    investigation_execution = (
+                        self.executor.execute_task(
+                            {
+                                "task_id": investigation_task.get(
+                                    "task_id"
+                                ),
+                                "description": investigation_task.get(
+                                    "description"
+                                ),
+                                "tool": "web_search",
+                                "status": "pending"
+                            },
+                            {
+                                "query": investigation_query
+                            }
+                        )
+                    )
+
                     investigation_results.append({
                         "task_id": investigation_task.get(
                             "task_id"
                         ),
                         "type": "external_research",
-                        "status": "pending",
-                        "message": (
-                            "External investigation is ready "
-                            "for web search execution."
+                        "status": investigation_execution.get(
+                            "status"
+                        ),
+                        "query": investigation_query,
+                        "output": investigation_execution.get(
+                            "output"
+                        ),
+                        "error": investigation_execution.get(
+                            "error"
                         )
                     })
 
             self.trace.add_event(
                 "INVESTIGATION_EXECUTION",
-                "Agent prepared investigation tasks for execution.",
+                "Agent executed available investigation tasks.",
                 {
                     "task_count": len(
                         investigation_results
@@ -519,6 +548,21 @@ class Orchestrator:
                     "results": investigation_results
                 }
             )
+
+        
+            
+            
+            
+
+            
+
+            
+                
+                
+            
+
+                
+                    
 
         
 
