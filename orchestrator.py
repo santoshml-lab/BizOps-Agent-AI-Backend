@@ -27,7 +27,6 @@ class Orchestrator:
         self.result_aggregator = ResultAggregator()
         self.input_resolver = InputResolver()
         self.business_reasoning = BusinessReasoning()
-        
 
     def run(
         self,
@@ -375,16 +374,26 @@ class Orchestrator:
 
         aggregated_result = self.result_aggregator.aggregate(
             execution_results
-)
+        )
 
         self.trace.add_event(
             "RESULT_AGGREGATION",
             "Agent aggregated validated tool results.",
-    {
-            "status": aggregated_result.get("status"),
-            "count": aggregated_result.get("count", 0)
-    }
-)
+            {
+                "status": aggregated_result.get(
+                    "status"
+                ),
+                "count": aggregated_result.get(
+                    "count",
+                    0
+                )
+            }
+        )
+
+        # -------------------------------------------------
+        # BUSINESS REASONING
+        # -------------------------------------------------
+
         reasoning_result = self.business_reasoning.reason(
             aggregated_result
         )
@@ -393,22 +402,34 @@ class Orchestrator:
             "BUSINESS_REASONING",
             "Agent generated business reasoning from aggregated results.",
             {
-                "status": reasoning_result.get("status"),
+                "status": reasoning_result.get(
+                    "status"
+                ),
                 "insight_count": len(
-                    reasoning_result.get("insights", [])
+                    reasoning_result.get(
+                        "insights",
+                        []
+                    )
                 ),
                 "recommendation_count": len(
-                    reasoning_result.get("recommendations", [])
+                    reasoning_result.get(
+                        "recommendations",
+                        []
+                    )
                 )
             }
         )
 
-         investigation = reasoning_result.get(
-             "investigation",
+        # -------------------------------------------------
+        # INVESTIGATION CHECK
+        # -------------------------------------------------
+
+        investigation = reasoning_result.get(
+            "investigation",
             {}
         )
 
-         if investigation.get("required"):
+        if investigation.get("required"):
 
             self.trace.add_event(
                 "INVESTIGATION_REQUIRED",
@@ -423,22 +444,18 @@ class Orchestrator:
                     )
                 }
             )
-        
-            
-            
-        
 
-        
+        # -------------------------------------------------
+        # RESPONSE BUILDING
+        # -------------------------------------------------
 
-          response = self.response_builder.build(
-          user_request=user_request,
-          plan=plan,
-        execution_results=execution_results,
-        memory_context=memory_context,
-        reasoning_result=reasoning_result
+        response = self.response_builder.build(
+            user_request=user_request,
+            plan=plan,
+            execution_results=execution_results,
+            memory_context=memory_context,
+            reasoning_result=reasoning_result
         )
-            
-        
 
         self.trace.add_event(
             "BUSINESS_INSIGHT",
@@ -491,4 +508,4 @@ class Orchestrator:
                 "final_response"
             ),
             "trace": self.trace.get_trace()
-                }
+        }
