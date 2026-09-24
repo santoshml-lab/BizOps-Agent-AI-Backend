@@ -14,7 +14,6 @@ from business_reasoning import BusinessReasoning
 from investigation import InvestigationPlanner
 
 
-
 class Orchestrator:
 
     def __init__(self, memory_manager=None):
@@ -140,12 +139,8 @@ class Orchestrator:
                 {
                     "task_id": task_id,
                     "tool": tool_name,
-                    "status": resolved_input.get(
-                        "status"
-                    ),
-                    "source": resolved_input.get(
-                        "source"
-                    )
+                    "status": resolved_input.get("status"),
+                    "source": resolved_input.get("source")
                 }
             )
 
@@ -196,9 +191,7 @@ class Orchestrator:
                         "approval_required",
                         False
                     ),
-                    "status": approval.get(
-                        "status"
-                    )
+                    "status": approval.get("status")
                 }
             )
 
@@ -253,9 +246,7 @@ class Orchestrator:
                     {
                         "task_id": task_id,
                         "tool": tool_name,
-                        "status": result.get(
-                            "status"
-                        ),
+                        "status": result.get("status"),
                         "retry_count": recovery_state.get(
                             "retry_count",
                             0
@@ -278,9 +269,7 @@ class Orchestrator:
                     {
                         "task_id": task_id,
                         "tool": tool_name,
-                        "status": validation.get(
-                            "status"
-                        ),
+                        "status": validation.get("status"),
                         "issues": validation.get(
                             "issues",
                             []
@@ -351,9 +340,11 @@ class Orchestrator:
                         "trace": self.trace.get_trace()
                     }
 
-                recovery_state["retry_count"] = recovery_result.get(
-                    "retry_count",
-                    recovery_state["retry_count"] + 1
+                recovery_state["retry_count"] = (
+                    recovery_result.get(
+                        "retry_count",
+                        recovery_state["retry_count"] + 1
+                    )
                 )
 
                 self.trace.add_event(
@@ -372,7 +363,7 @@ class Orchestrator:
                 continue
 
         # -------------------------------------------------
-        # BUSINESS INSIGHT
+        # RESULT AGGREGATION
         # -------------------------------------------------
 
         aggregated_result = self.result_aggregator.aggregate(
@@ -383,9 +374,7 @@ class Orchestrator:
             "RESULT_AGGREGATION",
             "Agent aggregated validated tool results.",
             {
-                "status": aggregated_result.get(
-                    "status"
-                ),
+                "status": aggregated_result.get("status"),
                 "count": aggregated_result.get(
                     "count",
                     0
@@ -405,9 +394,7 @@ class Orchestrator:
             "BUSINESS_REASONING",
             "Agent generated business reasoning from aggregated results.",
             {
-                "status": reasoning_result.get(
-                    "status"
-                ),
+                "status": reasoning_result.get("status"),
                 "insight_count": len(
                     reasoning_result.get(
                         "insights",
@@ -423,65 +410,79 @@ class Orchestrator:
             }
         )
 
-
         # -------------------------------------------------
-# INVESTIGATION CHECK
-# -------------------------------------------------
+        # INVESTIGATION CHECK
+        # -------------------------------------------------
 
-investigation = reasoning_result.get(
-    "investigation",
-    {}
-)
+        investigation = reasoning_result.get(
+            "investigation",
+            {}
+        )
 
-investigation_results = []
+        # IMPORTANT:
+        # Always initialize this before the if-block.
+        investigation_results = []
 
-if investigation.get("required"):
+        if investigation.get("required"):
 
-    self.trace.add_event(
-        "INVESTIGATION_REQUIRED",
-        "Agent determined that additional investigation is required.",
-        {
-            "reason": investigation.get(
-                "reason"
-            ),
-            "questions": investigation.get(
-                "questions",
-                []
+            self.trace.add_event(
+                "INVESTIGATION_REQUIRED",
+                "Agent determined that additional investigation is required.",
+                {
+                    "reason": investigation.get(
+                        "reason"
+                    ),
+                    "questions": investigation.get(
+                        "questions",
+                        []
+                    )
+                }
             )
-        }
-    )
 
+            # -------------------------------------------------
+            # INVESTIGATION PLANNING
+            # -------------------------------------------------
 
+            investigation_plan = (
+                self.investigation_planner.create_tasks(
+                    investigation
+                )
+            )
 
-        
-        
+            self.trace.add_event(
+                "INVESTIGATION_PLANNED",
+                "Agent converted investigation questions into investigation tasks.",
+                {
+                    "status": investigation_plan.get(
+                        "status"
+                    ),
+                    "task_count": investigation_plan.get(
+                        "task_count",
+                        0
+                    ),
+                    "tasks": investigation_plan.get(
+                        "tasks",
+                        []
+                    )
+                }
+            )
 
-
-
-
-
-        
-
-        
-        
-        
-
-        
-            
-                    
-                   
             # -------------------------------------------------
             # INVESTIGATION EXECUTION
             # -------------------------------------------------
-
-            investigation_results = []
 
             for investigation_task in investigation_plan.get(
                 "tasks",
                 []
             ):
 
-                if investigation_task.get("type") == "data_request":
+                investigation_type = (
+                    investigation_task.get(
+                        "type"
+                    )
+                )
+
+                if investigation_type == "data_request":
 
                     investigation_results.append({
                         "task_id": investigation_task.get(
@@ -495,9 +496,7 @@ if investigation.get("required"):
                         )
                     })
 
-                elif investigation_task.get(
-                    "type"
-                ) == "external_research":
+                elif investigation_type == "external_research":
 
                     investigation_query = (
                         "Product sales performance for A, B, C "
@@ -550,6 +549,7 @@ if investigation.get("required"):
                     "results": investigation_results
                 }
             )
+
         # -------------------------------------------------
         # INVESTIGATION VALIDATION
         # -------------------------------------------------
@@ -604,6 +604,7 @@ if investigation.get("required"):
                 "results": investigation_validation_results
             }
         )
+
         # -------------------------------------------------
         # INVESTIGATION REASONING FEEDBACK
         # -------------------------------------------------
@@ -612,7 +613,9 @@ if investigation.get("required"):
 
         for investigation_result in investigation_results:
 
-            if investigation_result.get("status") != "success":
+            if investigation_result.get(
+                "status"
+            ) != "success":
                 continue
 
             output = investigation_result.get(
@@ -634,6 +637,10 @@ if investigation.get("required"):
                 ),
                 "evidence": output
             })
+
+        # -------------------------------------------------
+        # RE-REASONING
+        # -------------------------------------------------
 
         if investigation_evidence:
 
@@ -658,8 +665,10 @@ if investigation.get("required"):
                 ]
             }
 
-            re_reasoning_result = self.business_reasoning.reason(
-                investigation_aggregated_result
+            re_reasoning_result = (
+                self.business_reasoning.reason(
+                    investigation_aggregated_result
+                )
             )
 
             self.trace.add_event(
@@ -692,23 +701,6 @@ if investigation.get("required"):
             }:
 
                 reasoning_result = re_reasoning_result
-
-        
-            
-            
-            
-
-            
-
-            
-                
-                
-            
-
-                
-                    
-
-        
 
         # -------------------------------------------------
         # RESPONSE BUILDING
