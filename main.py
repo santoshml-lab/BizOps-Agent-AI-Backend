@@ -13,6 +13,7 @@ from orchestrator import Orchestrator
 from input_resolver import InputResolver
 from result_aggregator import ResultAggregator
 from business_reasoning import BusinessReasoning
+from investigation import InvestigationPlanner
 
 
 app = FastAPI(
@@ -213,6 +214,26 @@ def reason_test(input_data: Dict[str, Any]):
     return reasoning.reason(
         aggregated_result
     )
+
+@app.post("/investigation/test")
+def test_investigation():
+
+    planner = InvestigationPlanner()
+
+    investigation = {
+        "required": True,
+        "reason": "Historical sales data is missing.",
+        "questions": [
+            "Is the product performance gap persistent or temporary?",
+            "How does each product performance compare with relevant market or competitor trends?"
+        ]
+    }
+
+    return planner.create_tasks(
+        investigation
+    )
+
+
 
 
 
