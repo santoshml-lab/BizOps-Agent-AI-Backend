@@ -19,8 +19,12 @@ class InputResolver:
         if not tool_name:
             raise ValueError("Tool name is required.")
 
-        # 1. Use explicitly provided task input first.
+        # ---------------------------------
+        # PROVIDED INPUT
+        # ---------------------------------
+
         if task_id in task_inputs:
+
             return {
                 "status": "success",
                 "task_id": task_id,
@@ -29,7 +33,10 @@ class InputResolver:
                 "source": "provided"
             }
 
-        # 2. Resolve web search input.
+        # ---------------------------------
+        # WEB SEARCH
+        # ---------------------------------
+
         if tool_name == "web_search":
 
             search_query = user_request
@@ -44,28 +51,41 @@ class InputResolver:
                     "competitor",
                     "competition",
                     "industry trends",
-        ]
-    ):
+                ]
+            ):
+                search_query = (
+                    "current business market trends "
+                    "and sales trends 2026"
+                )
 
-               search_query = (
-                   "current business market trends "
-                   "and sales trends 2026"
-        )
+            return {
+                "status": "success",
+                "task_id": task_id,
+                "tool": tool_name,
+                "input": {
+                    "query": search_query
+                },
+                "source": "task_specific"
+            }
 
-        return {
-            "status": "success",
-            "task_id": task_id,
-            "tool": tool_name,
-            "input": {
-                "query": search_query
-        },
-        "source": "task_specific"
-    }
+        # ---------------------------------
+        # DATA ANALYSIS
+        # ---------------------------------
 
-            
-            
+        if tool_name == "data_analysis":
 
-        # 3. Calculator requires an explicit expression.
+            return {
+                "status": "success",
+                "task_id": task_id,
+                "tool": tool_name,
+                "input": {},
+                "source": "supabase"
+            }
+
+        # ---------------------------------
+        # CALCULATOR
+        # ---------------------------------
+
         if tool_name == "calculator":
 
             return {
@@ -74,23 +94,16 @@ class InputResolver:
                 "tool": tool_name,
                 "input": {},
                 "source": "unresolved",
-                "error": "Calculator expression could not be resolved."
+                "error": (
+                    "Calculator expression could not "
+                    "be resolved."
+                )
             }
 
-        # 4. Data analysis requires explicit data.
-        if tool_name == "data_analysis":
+        # ---------------------------------
+        # HIGH-IMPACT ACTIONS
+        # ---------------------------------
 
-            return {
-                "status": "failed",
-                "task_id": task_id,
-                "tool": tool_name,
-                "input": {},
-                "source": "unresolved",
-                "error": "Business data could not be resolved."
-            }
-
-        # 5. Tools that require human approval
-        # are not automatically given fabricated input.
         if tool_name in {
             "send_email",
             "delete_data",
@@ -105,17 +118,23 @@ class InputResolver:
                 "input": {},
                 "source": "unresolved",
                 "error": (
-                    "Required action input could not be resolved "
-                    "from the available request."
+                    "Required action input could not "
+                    "be resolved from the available request."
                 )
             }
 
-        # 6. Unknown tool.
+        # ---------------------------------
+        # FALLBACK
+        # ---------------------------------
+
         return {
             "status": "failed",
             "task_id": task_id,
             "tool": tool_name,
             "input": {},
             "source": "unresolved",
-            "error": "Input could not be resolved for the selected tool."
+            "error": (
+                "Input could not be resolved for "
+                "the selected tool."
+            )
         }
