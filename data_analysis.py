@@ -9,7 +9,14 @@ class DataAnalysisTool(BaseTool):
     description = "Performs basic analysis on business data."
 
     def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        data = input_data.get("data")
+        response = (
+        supabase
+        .table("orders")
+        .select("*")
+        .execute()
+)
+
+data = response.data
 
         if not data:
             raise ValueError("Data is required.")
