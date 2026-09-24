@@ -548,6 +548,60 @@ class Orchestrator:
                     "results": investigation_results
                 }
             )
+        # -------------------------------------------------
+        # INVESTIGATION VALIDATION
+        # -------------------------------------------------
+
+        investigation_validation_results = []
+
+        for investigation_result in investigation_results:
+
+            status = investigation_result.get(
+                "status"
+            )
+
+            task_id = investigation_result.get(
+                "task_id"
+            )
+
+            if status == "success":
+
+                investigation_validation_results.append({
+                    "task_id": task_id,
+                    "status": "passed",
+                    "issues": []
+                })
+
+            elif status == "waiting_for_data":
+
+                investigation_validation_results.append({
+                    "task_id": task_id,
+                    "status": "waiting",
+                    "issues": [
+                        "Required internal business data is still missing."
+                    ]
+                })
+
+            else:
+
+                investigation_validation_results.append({
+                    "task_id": task_id,
+                    "status": "failed",
+                    "issues": [
+                        investigation_result.get(
+                            "error",
+                            "Investigation execution failed."
+                        )
+                    ]
+                })
+
+        self.trace.add_event(
+            "INVESTIGATION_VALIDATION",
+            "Agent validated investigation results.",
+            {
+                "results": investigation_validation_results
+            }
+        )
 
         
             
