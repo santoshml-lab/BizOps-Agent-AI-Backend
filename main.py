@@ -14,6 +14,7 @@ from input_resolver import InputResolver
 from result_aggregator import ResultAggregator
 from business_reasoning import BusinessReasoning
 from investigation import InvestigationPlanner
+from supabase_client import supabase
 
 
 app = FastAPI(
@@ -232,6 +233,22 @@ def test_investigation():
     return planner.create_tasks(
         investigation
     )
+
+@app.get("/supabase/test")
+def test_supabase():
+
+    response = (
+        supabase
+        .table("orders")
+        .select("*")
+        .limit(3)
+        .execute()
+    )
+
+    return {
+        "status": "success",
+        "rows": response.data
+    }
 
 
 
