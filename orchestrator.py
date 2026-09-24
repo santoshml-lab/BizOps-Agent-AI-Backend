@@ -406,12 +406,12 @@ class Orchestrator:
                 }
             )
 
-           response = self.response_builder.build(
-           user_request=user_request,
-           plan=plan,
-           execution_results=execution_results,
-           memory_context=memory_context,
-           reasoning_result=reasoning_result
+            response = self.response_builder.build(
+            user_request=user_request,
+            plan=plan,
+            execution_results=execution_results,
+            memory_context=memory_context,
+            reasoning_result=reasoning_result
         )
             
         
