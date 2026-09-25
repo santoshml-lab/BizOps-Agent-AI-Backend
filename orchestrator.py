@@ -538,22 +538,31 @@ class Orchestrator:
                     )
 
                     investigation_execution = (
-                        self.executor.execute_task(
-                            {
-                                "task_id": investigation_task.get(
-                                    "task_id"
-                                ),
-                                "description": investigation_task.get(
-                                    "description"
-                                ),
-                                "tool": "web_search",
-                                "status": "pending"
-                            },
-                            {
-                                "query": investigation_query
-                            }
-                        )
+              self.executor.execute_task(
+        {
+            "task_id": investigation_task.get(
+                "task_id"
+            ),
+            "description": investigation_task.get(
+                "description"
+            ),
+            "tool": investigation_tool,
+            "status": "pending"
+        },
+        {
+            "investigation_question": (
+                investigation_task.get(
+                    "description",
+                    ""
+                )
+            )
+        }
+    )
                     )
+                        
+                            
+                        
+                    
 
                     investigation_results.append({
                         "task_id": investigation_task.get(
