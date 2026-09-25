@@ -330,21 +330,36 @@ def test_supabase():
 @app.get("/groq/test")
 def test_groq():
 
-    response = groq_client.chat.completions.create(
-        model="openai/gpt-oss-20b",
-        messages=[
-            {
-                "role": "user",
-                "content": "Reply with exactly: Groq connection successful."
-            }
-        ],
-        temperature=0
-    )
+    try:
+        response = groq_client.chat.completions.create(
+            model="openai/gpt-oss-20b",
+            messages=[
+                {
+                    "role": "user",
+                    "content": "Reply with exactly: Groq connection successful."
+                }
+            ],
+            temperature=0
+        )
 
-    return {
-        "status": "success",
-        "response": response.choices[0].message.content
-    }
+        return {
+            "status": "success",
+            "response": response.choices[0].message.content
+        }
+
+    except Exception as error:
+        return {
+            "status": "failed",
+            "error_type": type(error).__name__,
+            "error": str(error)
+        }
+
+
+
+
+    
+            
+        
 
 
 
