@@ -16,6 +16,7 @@ from business_reasoning import BusinessReasoning
 from investigation import InvestigationPlanner
 from supabase_client import supabase
 from groq_client import groq_client
+from groq_planner import create_llm_plan
 
 
 app = FastAPI(
@@ -389,6 +390,33 @@ def groq_raw_test():
             "status": "failed",
             "error_type": type(error).__name__,
             "error": str(error),
+        }
+
+@app.post("/groq/plan-test")
+def groq_plan_test(input_data: Dict[str, Any]):
+
+    user_request = input_data.get("request", "")
+
+    if not user_request:
+        return {
+            "status": "failed",
+            "error": "Request is required."
+        }
+
+    try:
+
+        result = create_llm_plan(
+            user_request
+        )
+
+        return result
+
+    except Exception as error:
+
+        return {
+            "status": "failed",
+            "error_type": type(error).__name__,
+            "error": str(error)
         }
 
 
