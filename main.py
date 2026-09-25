@@ -327,32 +327,31 @@ def test_supabase():
         "rows": response.data
     }
 
-@app.get("/groq/test")
-def test_groq():
+@app.get("/groq/network-test")
+def groq_network_test():
+
+    import requests
 
     try:
-        response = groq_client.chat.completions.create(
-            model="openai/gpt-oss-20b",
-            messages=[
-                {
-                    "role": "user",
-                    "content": "Reply with exactly: Groq connection successful."
-                }
-            ],
-            temperature=0
+        response = requests.get(
+            "https://api.groq.com",
+            timeout=10
         )
 
         return {
             "status": "success",
-            "response": response.choices[0].message.content
+            "http_status": response.status_code
         }
 
     except Exception as error:
+
         return {
             "status": "failed",
             "error_type": type(error).__name__,
             "error": str(error)
         }
+
+
 
 
 
