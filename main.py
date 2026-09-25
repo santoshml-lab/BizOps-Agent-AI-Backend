@@ -15,6 +15,7 @@ from result_aggregator import ResultAggregator
 from business_reasoning import BusinessReasoning
 from investigation import InvestigationPlanner
 from supabase_client import supabase
+from groq_client import groq_client
 
 
 app = FastAPI(
@@ -324,6 +325,25 @@ def test_supabase():
     return {
         "status": "success",
         "rows": response.data
+    }
+
+@app.get("/groq/test")
+def test_groq():
+
+    response = groq_client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {
+                "role": "user",
+                "content": "Reply with exactly: Groq connection successful."
+            }
+        ],
+        temperature=0
+    )
+
+    return {
+        "status": "success",
+        "response": response.choices[0].message.content
     }
 
 
