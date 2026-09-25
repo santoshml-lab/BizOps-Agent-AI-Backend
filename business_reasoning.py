@@ -9,7 +9,6 @@ class BusinessReasoning:
     ) -> Dict[str, Any]:
 
         if not aggregated_result:
-
             return {
                 "status": "failed",
                 "insights": [],
@@ -27,7 +26,6 @@ class BusinessReasoning:
             }
 
         if aggregated_result.get("status") != "success":
-
             return {
                 "status": "failed",
                 "insights": [],
@@ -64,10 +62,6 @@ class BusinessReasoning:
             "questions": []
         }
 
-        # -------------------------------------------------
-        # PROCESS ANALYSIS RESULTS
-        # -------------------------------------------------
-
         for result in results:
 
             if result.get("status") != "success":
@@ -75,10 +69,6 @@ class BusinessReasoning:
 
             tool = result.get("tool")
             output = result.get("output") or {}
-
-            # -------------------------------------------------
-            # DATA ANALYSIS
-            # -------------------------------------------------
 
             if tool == "data_analysis":
 
@@ -96,10 +86,6 @@ class BusinessReasoning:
                 weakest_product = output.get(
                     "weakest_product"
                 )
-
-                # -------------------------------------------------
-                # PRODUCT PERFORMANCE
-                # -------------------------------------------------
 
                 if (
                     product_analysis
@@ -171,10 +157,6 @@ class BusinessReasoning:
                         f"a difference of {units_gap} units."
                     )
 
-                    # -------------------------------------------------
-                    # BUSINESS CONCERN
-                    # -------------------------------------------------
-
                     business_concern = (
                         f"{weakest_name} is underperforming "
                         f"{strongest_name} in recorded revenue. "
@@ -213,11 +195,12 @@ class BusinessReasoning:
                         f"{strongest_name} over the last 6–12 months."
                     )
 
-        # -------------------------------------------------
-        # FALLBACK NUMERIC INSIGHTS
-        # -------------------------------------------------
-
-        if data_analysis_found and not product_analysis:
+        if data_analysis_found and not any(
+            result.get("output", {}).get("product_analysis")
+            for result in results
+            if result.get("tool") == "data_analysis"
+            and result.get("status") == "success"
+        ):
 
             numeric_summary = {}
 
@@ -257,10 +240,6 @@ class BusinessReasoning:
                         f"the maximum is {maximum}."
                     )
 
-        # -------------------------------------------------
-        # INVESTIGATION RECOMMENDATION
-        # -------------------------------------------------
-
         if investigation["required"]:
 
             recommendations.append(
@@ -270,8 +249,26 @@ class BusinessReasoning:
             )
 
         # -------------------------------------------------
-        # FINAL STATUS
+        # DEDUPLICATION
         # -------------------------------------------------
+
+        insights = list(
+            dict.fromkeys(insights)
+        )
+
+        recommendations = list(
+            dict.fromkeys(recommendations)
+        )
+
+        evidence_gaps = list(
+            dict.fromkeys(evidence_gaps)
+        )
+
+        investigation["questions"] = list(
+            dict.fromkeys(
+                investigation["questions"]
+            )
+        )
 
         if not insights:
 
