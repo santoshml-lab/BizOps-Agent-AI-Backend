@@ -47,13 +47,21 @@ class InvestigationPlanner:
 
             question_lower = question.lower()
 
-            # Internal business data investigation
+            # -------------------------------------------------
+            # INTERNAL BUSINESS DATA INVESTIGATION
+            # -------------------------------------------------
+
             if any(
                 phrase in question_lower
                 for phrase in [
                     "persistent or temporary",
                     "historical sales",
-                    "historical product"
+                    "historical product",
+                    "persistent over time",
+                    "over time",
+                    "historical trend",
+                    "sales trend",
+                    "trend"
                 ]
             ):
 
@@ -61,17 +69,22 @@ class InvestigationPlanner:
                     "task_id": f"investigation_{index}",
                     "description": question,
                     "type": "data_request",
-                    "tool": "none",
+                    "tool": "data_analysis",
                     "status": "pending"
                 })
 
-            # External market / competitor investigation
+            # -------------------------------------------------
+            # EXTERNAL MARKET / COMPETITOR INVESTIGATION
+            # -------------------------------------------------
+
             elif any(
                 phrase in question_lower
                 for phrase in [
                     "market",
                     "competitor",
-                    "competitive"
+                    "competitive",
+                    "industry",
+                    "external"
                 ]
             ):
 
@@ -83,7 +96,35 @@ class InvestigationPlanner:
                     "status": "pending"
                 })
 
-            # Unknown investigation type
+            # -------------------------------------------------
+            # BUSINESS PERFORMANCE / CAUSE INVESTIGATION
+            # -------------------------------------------------
+
+            elif any(
+                phrase in question_lower
+                for phrase in [
+                    "why is",
+                    "why are",
+                    "underperforming",
+                    "underperformance",
+                    "performance gap",
+                    "performing worse",
+                    "performing better"
+                ]
+            ):
+
+                tasks.append({
+                    "task_id": f"investigation_{index}",
+                    "description": question,
+                    "type": "data_request",
+                    "tool": "data_analysis",
+                    "status": "pending"
+                })
+
+            # -------------------------------------------------
+            # UNKNOWN INVESTIGATION TYPE
+            # -------------------------------------------------
+
             else:
 
                 tasks.append({
