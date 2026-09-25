@@ -184,19 +184,19 @@ class BusinessReasoning:
                     insights.append(
                         f"{strongest_name} is the strongest "
                         f"product by recorded revenue at "
-                        f"{strongest_revenue}."
+                        f"{strongest_revenue:,.2f}."
                     )
 
                     insights.append(
                         f"{weakest_name} is the weakest "
                         f"product by recorded revenue at "
-                        f"{weakest_revenue}."
+                        f"{weakest_revenue:,.2f}."
                     )
 
                     insights.append(
                         f"The revenue gap between the strongest "
                         f"and weakest products is "
-                        f"{revenue_gap}."
+                        f"{revenue_gap:,.2f}."
                     )
 
                     insights.append(
@@ -237,7 +237,6 @@ class BusinessReasoning:
                         if monthly_analysis:
 
                             weakest_months = 0
-                            strongest_months = 0
                             comparison_months = 0
 
                             for month_data in (
@@ -283,12 +282,6 @@ class BusinessReasoning:
                                     ):
                                         weakest_months += 1
 
-                                    if (
-                                        strongest_revenue_month
-                                        > weakest_revenue_month
-                                    ):
-                                        strongest_months += 1
-
                             if comparison_months > 0:
 
                                 if (
@@ -317,6 +310,18 @@ class BusinessReasoning:
                                         f"{comparison_months} observed "
                                         f"months."
                                     )
+
+                                # -------------------------------------------------
+                                # NEW RECOMMENDATION AFTER HISTORICAL EVIDENCE
+                                # -------------------------------------------------
+
+                                recommendations.append(
+                                    f"Investigate the drivers behind "
+                                    f"{weakest_name}'s persistent revenue "
+                                    f"gap, focusing on pricing, unit "
+                                    f"sales, regional performance, and "
+                                    f"customer demand."
+                                )
 
                         # Historical evidence has resolved
                         # the original evidence gap.
@@ -404,34 +409,48 @@ class BusinessReasoning:
                             and weakest_comparison
                         ):
 
-                            price_difference = (
+                            strongest_price = (
                                 strongest_comparison.get(
                                     "average_unit_price",
                                     0
                                 )
-                                -
+                            )
+
+                            weakest_price = (
                                 weakest_comparison.get(
                                     "average_unit_price",
                                     0
                                 )
                             )
 
-                            discount_difference = (
+                            strongest_discount = (
                                 strongest_comparison.get(
                                     "average_discount",
                                     0
                                 )
-                                -
+                            )
+
+                            weakest_discount = (
                                 weakest_comparison.get(
                                     "average_discount",
                                     0
                                 )
+                            )
+
+                            price_difference = (
+                                strongest_price
+                                - weakest_price
+                            )
+
+                            discount_difference = (
+                                strongest_discount
+                                - weakest_discount
                             )
 
                             insights.append(
                                 f"{strongest_name} has an average "
                                 f"unit price that is "
-                                f"{price_difference} higher than "
+                                f"{price_difference:,.2f} higher than "
                                 f"{weakest_name}."
                             )
 
@@ -439,8 +458,16 @@ class BusinessReasoning:
                                 f"The average discount difference "
                                 f"between {strongest_name} and "
                                 f"{weakest_name} is "
-                                f"{discount_difference} percentage "
-                                f"points."
+                                f"{discount_difference:,.2f} "
+                                f"percentage points."
+                            )
+
+                            recommendations.append(
+                                f"Compare the pricing and discount "
+                                f"strategy of {weakest_name} with "
+                                f"{strongest_name} to determine whether "
+                                f"pricing differences may be contributing "
+                                f"to the observed revenue gap."
                             )
 
                 # -------------------------------------------------
@@ -510,10 +537,10 @@ class BusinessReasoning:
                 ):
 
                     insights.append(
-                        f"{column} total is {total}, "
-                        f"with an average of {average}. "
-                        f"The minimum is {minimum} and "
-                        f"the maximum is {maximum}."
+                        f"{column} total is {total:,.2f}, "
+                        f"with an average of {average:,.2f}. "
+                        f"The minimum is {minimum:,.2f} and "
+                        f"the maximum is {maximum:,.2f}."
                     )
 
         # -------------------------------------------------
@@ -531,7 +558,7 @@ class BusinessReasoning:
 
         # -------------------------------------------------
         # IF HISTORICAL EVIDENCE IS AVAILABLE,
-        # DO NOT KEEP OLD GAP
+        # REMOVE OLD EVIDENCE GAP
         # -------------------------------------------------
 
         if historical_trend_available:
@@ -543,10 +570,6 @@ class BusinessReasoning:
                     "Product-level historical trend"
                 )
             ]
-
-            # Historical evidence is already available,
-            # so the old investigation question does not
-            # need to trigger another investigation.
 
             investigation["questions"] = [
                 question
