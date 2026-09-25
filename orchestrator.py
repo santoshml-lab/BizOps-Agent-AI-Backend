@@ -504,7 +504,14 @@ class Orchestrator:
                                 "tool": investigation_tool,
                                 "status": "pending"
                             },
-                            {}
+                            {
+                                "investigation_question": (
+                                    investigation_task.get(
+                                        "description",
+                                        ""
+                                    )
+                                )
+                            }
                         )
                     )
 
@@ -538,31 +545,22 @@ class Orchestrator:
                     )
 
                     investigation_execution = (
-              self.executor.execute_task(
-        {
-            "task_id": investigation_task.get(
-                "task_id"
-            ),
-            "description": investigation_task.get(
-                "description"
-            ),
-            "tool": investigation_tool,
-            "status": "pending"
-        },
-        {
-            "investigation_question": (
-                investigation_task.get(
-                    "description",
-                    ""
-                )
-            )
-        }
-    )
+                        self.executor.execute_task(
+                            {
+                                "task_id": investigation_task.get(
+                                    "task_id"
+                                ),
+                                "description": investigation_task.get(
+                                    "description"
+                                ),
+                                "tool": "web_search",
+                                "status": "pending"
+                            },
+                            {
+                                "query": investigation_query
+                            }
+                        )
                     )
-                        
-                            
-                        
-                    
 
                     investigation_results.append({
                         "task_id": investigation_task.get(
@@ -703,7 +701,9 @@ class Orchestrator:
                     "task_id": item.get(
                         "task_id"
                     ),
-                    "tool": "data_analysis",
+                    "tool": item.get(
+                        "tool"
+                    ),
                     "status": "success",
                     "output": item.get(
                         "evidence"
@@ -817,4 +817,4 @@ class Orchestrator:
                 "final_response"
             ),
             "trace": self.trace.get_trace()
-            }
+        }
