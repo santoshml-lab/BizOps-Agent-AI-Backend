@@ -62,6 +62,48 @@ class BusinessReasoning:
             "questions": []
         }
 
+        # -------------------------------------------------
+        # DETECT AVAILABLE INVESTIGATION EVIDENCE
+        # -------------------------------------------------
+
+        historical_trend_available = False
+        product_comparison_available = False
+
+        for result in results:
+
+            if result.get("status") != "success":
+                continue
+
+            if result.get("tool") != "data_analysis":
+                continue
+
+            output = result.get("output") or {}
+
+            investigation_output = output.get(
+                "investigation",
+                {}
+            )
+
+            if not isinstance(
+                investigation_output,
+                dict
+            ):
+                continue
+
+            investigation_type = investigation_output.get(
+                "type"
+            )
+
+            if investigation_type == "historical_trend":
+                historical_trend_available = True
+
+            if investigation_type == "product_comparison":
+                product_comparison_available = True
+
+        # -------------------------------------------------
+        # PROCESS RESULTS
+        # -------------------------------------------------
+
         for result in results:
 
             if result.get("status") != "success":
@@ -69,6 +111,10 @@ class BusinessReasoning:
 
             tool = result.get("tool")
             output = result.get("output") or {}
+
+            # =================================================
+            # DATA ANALYSIS
+            # =================================================
 
             if tool == "data_analysis":
 
@@ -131,6 +177,10 @@ class BusinessReasoning:
                         - weakest_units
                     )
 
+                    # -------------------------------------------------
+                    # CORE BUSINESS INSIGHTS
+                    # -------------------------------------------------
+
                     insights.append(
                         f"{strongest_name} is the strongest "
                         f"product by recorded revenue at "
@@ -164,64 +214,290 @@ class BusinessReasoning:
                         f"performance gap exists."
                     )
 
-                    evidence_gaps.append(
-                        "Product-level historical trend"
-                    )
+                    # -------------------------------------------------
+                    # HISTORICAL TREND EVIDENCE
+                    # -------------------------------------------------
 
-                    investigation["required"] = True
+                    if historical_trend_available:
 
-                    investigation["reason"] = (
-                        f"Current data identifies {weakest_name} "
-                        f"as the weakest product, but additional "
-                        f"historical and market evidence is needed "
-                        f"to determine whether this performance gap "
-                        f"is persistent and what is causing it."
-                    )
+                        historical_investigation = (
+                            output.get(
+                                "investigation",
+                                {}
+                            )
+                        )
 
-                    investigation["questions"].append(
-                        f"Why is {weakest_name} underperforming "
-                        f"{strongest_name}?"
-                    )
+                        monthly_analysis = (
+                            historical_investigation.get(
+                                "monthly_analysis",
+                                {}
+                            )
+                        )
 
-                    investigation["questions"].append(
-                        f"Is the performance gap between "
-                        f"{strongest_name} and {weakest_name} "
-                        f"persistent over time?"
-                    )
+                        if monthly_analysis:
 
-                    recommendations.append(
-                        f"Investigate the historical sales trend "
-                        f"of {weakest_name} and compare it with "
-                        f"{strongest_name} over the last 6–12 months."
-                    )
+                            weakest_months = 0
+                            strongest_months = 0
+                            comparison_months = 0
+
+                            for month_data in (
+                                monthly_analysis.values()
+                            ):
+
+                                weakest_data = (
+                                    month_data.get(
+                                        weakest_name
+                                    )
+                                )
+
+                                strongest_data = (
+                                    month_data.get(
+                                        strongest_name
+                                    )
+                                )
+
+                                if (
+                                    weakest_data
+                                    and strongest_data
+                                ):
+
+                                    comparison_months += 1
+
+                                    weakest_revenue_month = (
+                                        weakest_data.get(
+                                            "revenue",
+                                            0
+                                        )
+                                    )
+
+                                    strongest_revenue_month = (
+                                        strongest_data.get(
+                                            "revenue",
+                                            0
+                                        )
+                                    )
+
+                                    if (
+                                        weakest_revenue_month
+                                        < strongest_revenue_month
+                                    ):
+                                        weakest_months += 1
+
+                                    if (
+                                        strongest_revenue_month
+                                        > weakest_revenue_month
+                                    ):
+                                        strongest_months += 1
+
+                            if comparison_months > 0:
+
+                                if (
+                                    weakest_months
+                                    == comparison_months
+                                ):
+
+                                    insights.append(
+                                        f"{weakest_name} generated "
+                                        f"lower revenue than "
+                                        f"{strongest_name} in all "
+                                        f"{comparison_months} observed "
+                                        f"months, indicating that the "
+                                        f"performance gap is persistent "
+                                        f"across the available historical "
+                                        f"period."
+                                    )
+
+                                else:
+
+                                    insights.append(
+                                        f"{weakest_name} generated "
+                                        f"lower revenue than "
+                                        f"{strongest_name} in "
+                                        f"{weakest_months} of "
+                                        f"{comparison_months} observed "
+                                        f"months."
+                                    )
+
+                        # Historical evidence has resolved
+                        # the original evidence gap.
+
+                        evidence_gaps = [
+                            gap
+                            for gap in evidence_gaps
+                            if gap != (
+                                "Product-level historical trend"
+                            )
+                        ]
+
+                    else:
+
+                        # Historical evidence is still missing.
+
+                        evidence_gaps.append(
+                            "Product-level historical trend"
+                        )
+
+                        investigation["required"] = True
+
+                        investigation["reason"] = (
+                            f"Current data identifies "
+                            f"{weakest_name} as the weakest "
+                            f"product, but additional historical "
+                            f"and market evidence is needed to "
+                            f"determine whether this performance "
+                            f"gap is persistent and what is "
+                            f"causing it."
+                        )
+
+                        investigation["questions"].append(
+                            f"Why is {weakest_name} "
+                            f"underperforming "
+                            f"{strongest_name}?"
+                        )
+
+                        investigation["questions"].append(
+                            f"Is the performance gap between "
+                            f"{strongest_name} and "
+                            f"{weakest_name} persistent "
+                            f"over time?"
+                        )
+
+                        recommendations.append(
+                            f"Investigate the historical sales "
+                            f"trend of {weakest_name} and "
+                            f"compare it with {strongest_name} "
+                            f"over the last 6–12 months."
+                        )
+
+                    # -------------------------------------------------
+                    # PRODUCT COMPARISON EVIDENCE
+                    # -------------------------------------------------
+
+                    if product_comparison_available:
+
+                        comparison_data = output.get(
+                            "investigation",
+                            {}
+                        )
+
+                        comparison = comparison_data.get(
+                            "comparison",
+                            {}
+                        )
+
+                        strongest_comparison = (
+                            comparison.get(
+                                strongest_name,
+                                {}
+                            )
+                        )
+
+                        weakest_comparison = (
+                            comparison.get(
+                                weakest_name,
+                                {}
+                            )
+                        )
+
+                        if (
+                            strongest_comparison
+                            and weakest_comparison
+                        ):
+
+                            price_difference = (
+                                strongest_comparison.get(
+                                    "average_unit_price",
+                                    0
+                                )
+                                -
+                                weakest_comparison.get(
+                                    "average_unit_price",
+                                    0
+                                )
+                            )
+
+                            discount_difference = (
+                                strongest_comparison.get(
+                                    "average_discount",
+                                    0
+                                )
+                                -
+                                weakest_comparison.get(
+                                    "average_discount",
+                                    0
+                                )
+                            )
+
+                            insights.append(
+                                f"{strongest_name} has an average "
+                                f"unit price that is "
+                                f"{price_difference} higher than "
+                                f"{weakest_name}."
+                            )
+
+                            insights.append(
+                                f"The average discount difference "
+                                f"between {strongest_name} and "
+                                f"{weakest_name} is "
+                                f"{discount_difference} percentage "
+                                f"points."
+                            )
+
+                # -------------------------------------------------
+                # NUMERIC SUMMARY FALLBACK
+                # -------------------------------------------------
 
         if data_analysis_found and not any(
-            result.get("output", {}).get("product_analysis")
+            result.get(
+                "output",
+                {}
+            ).get(
+                "product_analysis"
+            )
             for result in results
-            if result.get("tool") == "data_analysis"
-            and result.get("status") == "success"
+            if (
+                result.get("tool") == "data_analysis"
+                and result.get("status") == "success"
+            )
         ):
 
             numeric_summary = {}
 
             for result in results:
 
-                if result.get("tool") != "data_analysis":
+                if result.get(
+                    "tool"
+                ) != "data_analysis":
                     continue
 
-                output = result.get("output") or {}
+                output = result.get(
+                    "output"
+                ) or {}
 
                 numeric_summary = output.get(
                     "numeric_summary",
                     {}
                 )
 
-            for column, summary in numeric_summary.items():
+            for column, summary in (
+                numeric_summary.items()
+            ):
 
-                total = summary.get("sum")
-                average = summary.get("average")
-                minimum = summary.get("minimum")
-                maximum = summary.get("maximum")
+                total = summary.get(
+                    "sum"
+                )
+
+                average = summary.get(
+                    "average"
+                )
+
+                minimum = summary.get(
+                    "minimum"
+                )
+
+                maximum = summary.get(
+                    "maximum"
+                )
 
                 if all(
                     value is not None
@@ -240,35 +516,93 @@ class BusinessReasoning:
                         f"the maximum is {maximum}."
                     )
 
+        # -------------------------------------------------
+        # ADD GENERAL RECOMMENDATION ONLY IF INVESTIGATION
+        # IS STILL REQUIRED
+        # -------------------------------------------------
+
         if investigation["required"]:
 
             recommendations.append(
-                "Collect historical product-level sales data "
-                "and compare the trend with relevant market "
-                "and competitor evidence."
+                "Collect historical product-level sales "
+                "data and compare the trend with relevant "
+                "market and competitor evidence."
             )
+
+        # -------------------------------------------------
+        # IF HISTORICAL EVIDENCE IS AVAILABLE,
+        # DO NOT KEEP OLD GAP
+        # -------------------------------------------------
+
+        if historical_trend_available:
+
+            evidence_gaps = [
+                gap
+                for gap in evidence_gaps
+                if gap != (
+                    "Product-level historical trend"
+                )
+            ]
+
+            # Historical evidence is already available,
+            # so the old investigation question does not
+            # need to trigger another investigation.
+
+            investigation["questions"] = [
+                question
+                for question in investigation[
+                    "questions"
+                ]
+                if "persistent over time" not in (
+                    question.lower()
+                )
+            ]
+
+        # -------------------------------------------------
+        # IF ALL CURRENT EVIDENCE GAPS ARE RESOLVED
+        # -------------------------------------------------
+
+        if not evidence_gaps:
+
+            investigation["required"] = False
+
+            investigation["reason"] = None
+
+            investigation["questions"] = []
 
         # -------------------------------------------------
         # DEDUPLICATION
         # -------------------------------------------------
 
         insights = list(
-            dict.fromkeys(insights)
+            dict.fromkeys(
+                insights
+            )
         )
 
         recommendations = list(
-            dict.fromkeys(recommendations)
+            dict.fromkeys(
+                recommendations
+            )
         )
 
         evidence_gaps = list(
-            dict.fromkeys(evidence_gaps)
+            dict.fromkeys(
+                evidence_gaps
+            )
         )
 
         investigation["questions"] = list(
             dict.fromkeys(
-                investigation["questions"]
+                investigation[
+                    "questions"
+                ]
             )
         )
+
+        # -------------------------------------------------
+        # FINAL STATUS
+        # -------------------------------------------------
 
         if not insights:
 
