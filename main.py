@@ -234,6 +234,82 @@ def test_investigation():
         investigation
     )
 
+@app.post("/agent/recovery-test")
+def recovery_test():
+
+    task = {
+        "task_id": "recovery_test_task",
+        "description": "Intentional failure for recovery testing.",
+        "tool": "__recovery_test_tool__",
+        "status": "pending",
+    }
+
+    input_data = {}
+
+    executor = Executor()
+    validator = Validator()
+    recovery_engine = RecoveryEngine(
+        max_retries=2
+    )
+
+    execution_results = []
+    validation_results = []
+    recovery_results = []
+
+    recovery_state = {
+        "retry_count": 0
+    }
+
+    while True:
+
+        result = executor.execute_task(
+            task,
+            input_data
+        )
+
+        execution_results.append(result)
+
+        validation = validator.validate_task_result(
+            task,
+            result
+        )
+
+        validation_results.append(validation)
+
+        if validation.get("status") == "passed":
+            break
+
+        recovery = recovery_engine.recover(
+            task,
+            result,
+            recovery_state
+        )
+
+        recovery_results.append(recovery)
+
+        if recovery.get("status") != "retry":
+            break
+
+        recovery_state["retry_count"] = (
+            recovery.get(
+                "retry_count",
+                recovery_state["retry_count"] + 1
+            )
+        )
+
+    return {
+        "status": "completed",
+        "execution_attempts": len(
+            execution_results
+        ),
+        "execution_results": execution_results,
+        "validation_results": validation_results,
+        "recovery_results": recovery_results,
+        "final_retry_count": recovery_state[
+            "retry_count"
+        ],
+    }
+
 @app.get("/supabase/test")
 def test_supabase():
 
