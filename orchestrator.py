@@ -419,8 +419,6 @@ class Orchestrator:
             {}
         )
 
-        # IMPORTANT:
-        # Always initialize this before the if-block.
         investigation_results = []
 
         if investigation.get("required"):
@@ -482,19 +480,54 @@ class Orchestrator:
                     )
                 )
 
+                investigation_tool = (
+                    investigation_task.get(
+                        "tool"
+                    )
+                )
+
+                # ---------------------------------------------
+                # INTERNAL DATA INVESTIGATION
+                # ---------------------------------------------
+
                 if investigation_type == "data_request":
+
+                    investigation_execution = (
+                        self.executor.execute_task(
+                            {
+                                "task_id": investigation_task.get(
+                                    "task_id"
+                                ),
+                                "description": investigation_task.get(
+                                    "description"
+                                ),
+                                "tool": investigation_tool,
+                                "status": "pending"
+                            },
+                            {}
+                        )
+                    )
 
                     investigation_results.append({
                         "task_id": investigation_task.get(
                             "task_id"
                         ),
                         "type": "data_request",
-                        "status": "waiting_for_data",
-                        "message": (
-                            "Additional internal business data "
-                            "is required to answer this investigation."
+                        "status": investigation_execution.get(
+                            "status"
+                        ),
+                        "tool": investigation_tool,
+                        "output": investigation_execution.get(
+                            "output"
+                        ),
+                        "error": investigation_execution.get(
+                            "error"
                         )
                     })
+
+                # ---------------------------------------------
+                # EXTERNAL RESEARCH
+                # ---------------------------------------------
 
                 elif investigation_type == "external_research":
 
@@ -530,6 +563,7 @@ class Orchestrator:
                         "status": investigation_execution.get(
                             "status"
                         ),
+                        "tool": "web_search",
                         "query": investigation_query,
                         "output": investigation_execution.get(
                             "output"
@@ -606,7 +640,7 @@ class Orchestrator:
         )
 
         # -------------------------------------------------
-        # INVESTIGATION REASONING FEEDBACK
+        # INVESTIGATION EVIDENCE
         # -------------------------------------------------
 
         investigation_evidence = []
@@ -632,6 +666,9 @@ class Orchestrator:
                 "type": investigation_result.get(
                     "type"
                 ),
+                "tool": investigation_result.get(
+                    "tool"
+                ),
                 "query": investigation_result.get(
                     "query"
                 ),
@@ -644,36 +681,42 @@ class Orchestrator:
 
         if investigation_evidence:
 
-            investigation_aggregated_result = {
+            combined_results = list(
+                aggregated_result.get(
+                    "results",
+                    []
+                )
+            )
+
+            for item in investigation_evidence:
+
+                combined_results.append({
+                    "task_id": item.get(
+                        "task_id"
+                    ),
+                    "tool": "data_analysis",
+                    "status": "success",
+                    "output": item.get(
+                        "evidence"
+                    ),
+                    "error": None
+                })
+
+            re_reasoning_input = {
                 "status": "success",
-                "count": len(
-                    investigation_evidence
-                ),
-                "results": [
-                    {
-                        "task_id": item.get(
-                            "task_id"
-                        ),
-                        "tool": "investigation",
-                        "status": "success",
-                        "output": item.get(
-                            "evidence"
-                        ),
-                        "error": None
-                    }
-                    for item in investigation_evidence
-                ]
+                "count": len(combined_results),
+                "results": combined_results
             }
 
             re_reasoning_result = (
                 self.business_reasoning.reason(
-                    investigation_aggregated_result
+                    re_reasoning_input
                 )
             )
 
             self.trace.add_event(
                 "RE_REASONING",
-                "Agent re-evaluated the business situation using validated investigation evidence.",
+                "Agent re-evaluated the business situation using original analysis and validated investigation evidence.",
                 {
                     "status": re_reasoning_result.get(
                         "status"
@@ -765,4 +808,4 @@ class Orchestrator:
                 "final_response"
             ),
             "trace": self.trace.get_trace()
-        }
+            }
