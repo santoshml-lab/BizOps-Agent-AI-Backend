@@ -351,6 +351,46 @@ def groq_network_test():
             "error": str(error)
         }
 
+@app.get("/groq/raw-test")
+def groq_raw_test():
+
+    import os
+    import requests
+
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "openai/gpt-oss-20b",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "Reply with exactly: Groq raw API successful."
+                    }
+                ],
+                "temperature": 0,
+            },
+            timeout=30,
+        )
+
+        return {
+            "status": "success",
+            "http_status": response.status_code,
+            "response": response.json(),
+        }
+
+    except Exception as error:
+
+        return {
+            "status": "failed",
+            "error_type": type(error).__name__,
+            "error": str(error),
+        }
+
 
 
 
