@@ -168,30 +168,43 @@ def resolve_input(input_data: Dict[str, Any]):
         task_inputs=task_inputs,
     )
 
-
 @app.post("/agent/run")
 def run_agent(input_data: Dict[str, Any]):
-    user_request = input_data.get("query") or input_data.get("request")
-    task_inputs = input_data.get("task_inputs", {})
+
+    user_request = (
+        input_data.get("query")
+        or input_data.get("request")
+    )
+
+    task_inputs = input_data.get(
+        "task_inputs",
+        {}
+    )
 
     session_id = input_data.get(
         "session_id",
-        "default_session",
+        "default_session"
     )
 
     orchestrator = Orchestrator(
-        memory_manager,
+        memory_manager
     )
 
     result = orchestrator.run(
         user_request,
         task_inputs,
-        session_id,
+        session_id
     )
 
-    result["trace"] = orchestrator.trace.get_trace()
+    result["trace"] = (
+        orchestrator.trace.get_trace()
+    )
 
     return result
+
+
+
+
 
 @app.post("/agent/aggregate-test")
 def aggregate_test(input_data: Dict[str, Any]):
