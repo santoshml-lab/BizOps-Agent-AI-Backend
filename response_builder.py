@@ -1,158 +1,303 @@
 from typing import Any, Dict, List
 
-
 class ResponseBuilder:
 
-    def build(
-        self,
-        user_request: str,
-        plan: Dict[str, Any],
-        execution_results: List[Dict[str, Any]],
-        memory_context: List[Dict[str, Any]],
-        reasoning_result: Dict[str, Any] | None = None
-    ) -> Dict[str, Any]:
+def build(
+    self,
+    user_request: str,
+    plan: Dict[str, Any],
+    execution_results: List[Dict[str, Any]],
+    memory_context: List[Dict[str, Any]],
+    reasoning_result: Dict[str, Any] | None = None
+) -> Dict[str, Any]:
 
-        insights = []
-        recommendations = []
-        evidence_gaps = []
-        business_concern = None
+    insights = []
+    recommendations = []
+    evidence_gaps = []
+    business_concern = None
+    external_sources = []
 
-        # 1. Use Business Reasoning results when available.
-        if reasoning_result:
+    # ============================================================
+    # 1. Use Business Reasoning results when available
+    # ============================================================
 
-            insights.extend(
-                reasoning_result.get(
-                    "insights",
-                    []
+    if reasoning_result:
+
+        insights.extend(
+            reasoning_result.get(
+                "insights",
+                []
+            )
+        )
+
+        recommendations.extend(
+            reasoning_result.get(
+                "recommendations",
+                []
+            )
+        )
+
+        evidence_gaps.extend(
+            reasoning_result.get(
+                "evidence_gaps",
+                []
+            )
+        )
+
+        business_concern = reasoning_result.get(
+            "business_concern"
+        )
+
+    # ============================================================
+    # 2. Extract external web sources
+    # ============================================================
+
+    for result in execution_results:
+
+        if not isinstance(result, dict):
+            continue
+
+        if result.get("status") != "success":
+            continue
+
+        if result.get("tool") != "web_search":
+            continue
+
+        output = result.get(
+            "output",
+            {}
+        )
+
+        if not isinstance(output, dict):
+            continue
+
+        web_results = output.get(
+            "results",
+            []
+        )
+
+        if not isinstance(web_results, list):
+            continue
+
+        for item in web_results:
+
+            if not isinstance(item, dict):
+                continue
+
+            title = item.get("title")
+            url = item.get("url")
+            content = item.get("content")
+
+            if not title and not url:
+                continue
+
+            source = {
+                "title": title,
+                "url": url,
+                "content": content
+            }
+
+            external_sources.append(
+                source
+            )
+
+    # Remove duplicate sources
+    unique_sources = []
+
+    seen_urls = set()
+
+    for source in external_sources:
+
+        url = source.get("url")
+
+        if url and url in seen_urls:
+            continue
+
+        if url:
+            seen_urls.add(url)
+
+        unique_sources.append(source)
+
+    external_sources = unique_sources
+
+    # ============================================================
+    # 3. Fallback to execution-level insights
+    #    if Business Reasoning produced nothing
+    # ============================================================
+
+    if not insights:
+
+        for result in execution_results:
+
+            if result.get("status") != "success":
+                continue
+
+            tool = result.get("tool")
+            output = result.get(
+                "output",
+                {}
+            )
+
+            if not isinstance(output, dict):
+                continue
+
+            # ----------------------------------------------------
+            # DATA ANALYSIS
+            # ----------------------------------------------------
+
+            if tool == "data_analysis":
+
+                numeric_summary = output.get(
+                    "numeric_summary",
+                    {}
                 )
-            )
 
-            recommendations.extend(
-                reasoning_result.get(
-                    "recommendations",
-                    []
-                )
-            )
-
-            evidence_gaps.extend(
-                reasoning_result.get(
-                    "evidence_gaps",
-                    []
-                )
-            )
-
-            business_concern = reasoning_result.get(
-                "business_concern"
-            )
-
-        # 2. Fallback to execution-level insights
-        # if Business Reasoning produced nothing.
-        if not insights:
-
-            for result in execution_results:
-
-                if result.get("status") != "success":
+                if not isinstance(
+                    numeric_summary,
+                    dict
+                ):
                     continue
 
-                tool = result.get("tool")
-                output = result.get("output", {})
+                for column, summary in numeric_summary.items():
 
-                if tool == "data_analysis":
+                    if not isinstance(
+                        summary,
+                        dict
+                    ):
+                        continue
 
-                    numeric_summary = output.get(
-                        "numeric_summary",
-                        {}
+                    total = summary.get("sum")
+                    average = summary.get("average")
+                    minimum = summary.get("minimum")
+                    maximum = summary.get("maximum")
+
+                    insights.append(
+                        f"{column.capitalize()} total is {total}, "
+                        f"with an average of {average}. "
+                        f"The minimum is {minimum} and "
+                        f"the maximum is {maximum}."
                     )
 
-                    for column, summary in numeric_summary.items():
+            # ----------------------------------------------------
+            # CALCULATOR
+            # ----------------------------------------------------
 
-                        total = summary.get("sum")
-                        average = summary.get("average")
-                        minimum = summary.get("minimum")
-                        maximum = summary.get("maximum")
+            elif tool == "calculator":
 
-                        insights.append(
-                            f"{column.capitalize()} total is {total}, "
-                            f"with an average of {average}. "
-                            f"The minimum is {minimum} and "
-                            f"the maximum is {maximum}."
-                        )
+                if "result" in output:
 
-                elif tool == "calculator":
-
-                    if "result" in output:
-
-                        insights.append(
-                            f"The calculated result is "
-                            f"{output['result']}."
-                        )
-
-                elif tool == "web_search":
-
-                    results = output.get(
-                        "results",
-                        []
+                    insights.append(
+                        f"The calculated result is "
+                        f"{output['result']}."
                     )
 
-                    if results:
+            # ----------------------------------------------------
+            # WEB SEARCH
+            # ----------------------------------------------------
 
-                        insights.append(
-                            f"The web search returned "
-                            f"{len(results)} relevant results."
-                        )
+            elif tool == "web_search":
 
-        # 3. Use stored business goal as additional context.
-        business_goals = [
-            memory.get("value")
-            for memory in memory_context
-            if memory.get("key") == "business_goal"
-        ]
+                results = output.get(
+                    "results",
+                    []
+                )
 
-        if business_goals and insights:
+                if results:
 
-            recommendations.append(
-                "Evaluate these findings against "
-                f"the stored business goal: {business_goals[0]}."
-            )
+                    insights.append(
+                        f"The web search returned "
+                        f"{len(results)} relevant external sources."
+                    )
 
-        # 4. Final fallback.
-        if not insights:
+    # ============================================================
+    # 4. Use stored business goal as additional context
+    # ============================================================
 
-            insights.append(
-                "The agent completed the requested tasks "
-                "but no business insight was generated."
-            )
+    business_goals = [
+        memory.get("value")
+        for memory in memory_context
+        if memory.get("key") == "business_goal"
+    ]
 
-        final_response = " ".join(insights)
+    if business_goals and insights:
 
-        if business_concern:
+        recommendations.append(
+            "Evaluate these findings against "
+            f"the stored business goal: {business_goals[0]}."
+        )
 
-            final_response += (
-                " Main business concern: "
-                + business_concern
-            )
+    # ============================================================
+    # 5. Final fallback
+    # ============================================================
 
-        if evidence_gaps:
+    if not insights:
 
-            final_response += (
-                " Evidence gaps: "
-                + "; ".join(evidence_gaps)
-                + "."
-            )
+        insights.append(
+            "The agent completed the requested tasks "
+            "but no business insight was generated."
+        )
 
-        if recommendations:
+    # ============================================================
+    # 6. Build final response
+    # ============================================================
 
-            final_response += (
-                " Recommended next steps: "
-                + " ".join(recommendations)
-            )
+    final_response = " ".join(
+        insights
+    )
 
-        return {
-            "status": "success",
-            "user_request": user_request,
-            "insights": insights,
-            "business_concern": business_concern,
-            "evidence_gaps": evidence_gaps,
-            "recommendations": recommendations,
-            "final_response": final_response
-        }
+    if business_concern:
+
+        final_response += (
+            " Main business concern: "
+            + business_concern
+        )
+
+    if evidence_gaps:
+
+        final_response += (
+            " Evidence gaps: "
+            + "; ".join(evidence_gaps)
+            + "."
+        )
+
+    if recommendations:
+
+        final_response += (
+            " Recommended next steps: "
+            + " ".join(recommendations)
+        )
+
+    # ============================================================
+    # 7. Add external research context
+    # ============================================================
+
+    if external_sources:
+
+        final_response += (
+            f" External market research included "
+            f"{len(external_sources)} sources for contextual analysis."
+        )
+
+    # ============================================================
+    # 8. Return structured agent response
+    # ============================================================
+
+    return {
+        "status": "success",
+        "user_request": user_request,
+
+        # Company/internal reasoning
+        "insights": insights,
+
+        "business_concern": business_concern,
+
+        "evidence_gaps": evidence_gaps,
+
+        "recommendations": recommendations,
+
+        # External evidence
+        "external_sources": external_sources,
+
+        # Human-readable response
+        "final_response": final_response
+    }
