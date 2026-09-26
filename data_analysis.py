@@ -52,7 +52,43 @@ class DataAnalysisTool(BaseTool):
             else ""
         )
 
-        row_count = len(data)
+        # -------------------------------------------------
+        # DETECT REGION FROM INVESTIGATION QUESTION
+        # -------------------------------------------------
+
+        available_regions = sorted({
+            str(row.get("region")).strip()
+            for row in data
+            if row.get("region")
+        })
+
+        selected_region = None
+
+        for region in available_regions:
+            if region.lower() in question_lower:
+                selected_region = region
+                break
+
+        # -------------------------------------------------
+        # APPLY REGION FILTER FOR INVESTIGATION
+        # -------------------------------------------------
+
+        analysis_data = data
+
+        if selected_region:
+            analysis_data = [
+                row
+                for row in data
+                if str(row.get("region", "")).strip().lower()
+                == selected_region.lower()
+            ]
+
+        if not analysis_data:
+            raise ValueError(
+                "No business data found for the requested analysis scope."
+            )
+
+        row_count = len(analysis_data)
 
         columns = (
             list(data[0].keys())
@@ -69,7 +105,7 @@ class DataAnalysisTool(BaseTool):
         for column in columns:
             values = [
                 row[column]
-                for row in data
+                for row in analysis_data
                 if isinstance(
                     row.get(column),
                     (int, float)
@@ -93,7 +129,7 @@ class DataAnalysisTool(BaseTool):
 
         product_analysis = {}
 
-        for row in data:
+        for row in analysis_data:
             product = row.get("product")
 
             if not product:
@@ -158,7 +194,7 @@ class DataAnalysisTool(BaseTool):
 
         region_analysis = {}
 
-        for row in data:
+        for row in analysis_data:
 
             region = row.get("region")
 
@@ -190,7 +226,7 @@ class DataAnalysisTool(BaseTool):
 
         monthly_analysis = {}
 
-        for row in data:
+        for row in analysis_data:
 
             order_date = row.get("order_date")
 
@@ -329,8 +365,59 @@ class DataAnalysisTool(BaseTool):
 
         investigation_result = None
 
-        # Product comparison
+        # -------------------------------------------------
+        # REGION PRODUCT CONTRIBUTION
+        # -------------------------------------------------
+
         if (
+            selected_region
+            and (
+                "which products contribute" in question_lower
+                or "products contribute" in question_lower
+                or "product mix" in question_lower
+                or "product contribution" in question_lower
+                or "by product" in question_lower
+            )
+        ):
+
+            investigation_result = {
+                "type": "regional_product_contribution",
+                "region": selected_region,
+                "product_analysis": product_analysis
+            }
+
+        # -------------------------------------------------
+        # REGION HISTORICAL TREND
+        # -------------------------------------------------
+
+        elif (
+            selected_region
+            and (
+                "persistent" in question_lower
+                or "over time" in question_lower
+                or "historical trend" in question_lower
+                or "sales trend" in question_lower
+                or "monthly" in question_lower
+                or "month" in question_lower
+                or "consistent across" in question_lower
+                or "consistent over" in question_lower
+                or "across the observed months" in question_lower
+                or "across months" in question_lower
+            )
+        ):
+
+            investigation_result = {
+                "type": "regional_historical_trend",
+                "region": selected_region,
+                "monthly_analysis": monthly_analysis,
+                "monthly_change": monthly_change
+            }
+
+        # -------------------------------------------------
+        # PRODUCT COMPARISON
+        # -------------------------------------------------
+
+        elif (
             "why is" in question_lower
             or "underperforming" in question_lower
             or "performance gap" in question_lower
@@ -408,8 +495,11 @@ class DataAnalysisTool(BaseTool):
                     }
                 }
 
-        # Historical trend
-        if (
+        # -------------------------------------------------
+        # GENERAL HISTORICAL TREND
+        # -------------------------------------------------
+
+        elif (
             "persistent" in question_lower
             or "over time" in question_lower
             or "historical trend" in question_lower
@@ -441,6 +531,12 @@ class DataAnalysisTool(BaseTool):
             "monthly_analysis": monthly_analysis,
             "monthly_change": monthly_change
         }
+
+        if selected_region:
+            result["analysis_scope"] = {
+                "type": "region",
+                "region": selected_region
+            }
 
         if strongest_product:
 
