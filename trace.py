@@ -3,7 +3,7 @@ from datetime import datetime
 
 class AgentTrace:
 
-def __init__(self):
+ def __init__(self):
     self.events: List[Dict[str, Any]] = []
 
 # ============================================================
