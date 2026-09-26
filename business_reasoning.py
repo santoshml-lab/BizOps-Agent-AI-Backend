@@ -146,6 +146,9 @@ class BusinessReasoning:
         regional_product_investigation_available = False
         regional_trend_investigation_available = False
 
+        product_why_investigation_available = False
+        product_historical_investigation_available = False
+
         # =================================================
         # WEB EVIDENCE
         # =================================================
@@ -272,10 +275,18 @@ class BusinessReasoning:
             if investigation_type == "historical_trend":
 
                 historical_trend_available = True
+                product_historical_investigation_available = True
 
             if investigation_type == "product_comparison":
 
                 product_comparison_available = True
+                product_why_investigation_available = True
+
+            if investigation_type == (
+                "product_performance"
+            ):
+
+                product_why_investigation_available = True
 
             if investigation_type == (
                 "regional_product_contribution"
@@ -515,6 +526,59 @@ class BusinessReasoning:
                             "opportunity."
                         ])
 
+                        # ---------------------------------
+                        # PRODUCT "WHY" INVESTIGATION
+                        # ---------------------------------
+
+                        why_keywords = [
+                            "why",
+                            "how",
+                            "factor",
+                            "factors",
+                            "reason",
+                            "reasons",
+                            "driver",
+                            "drivers",
+                            "outperform",
+                            "outperforms"
+                        ]
+
+                        if any(
+                            keyword in request
+                            for keyword in why_keywords
+                        ):
+
+                            investigation["required"] = True
+
+                            investigation["reason"] = (
+                                f"The query asks why "
+                                f"{strongest_name} generates "
+                                f"the highest recorded "
+                                f"revenue. Additional "
+                                f"product-level evidence "
+                                f"is needed to examine "
+                                f"units sold, pricing, "
+                                f"discounts, and historical "
+                                f"performance."
+                            )
+
+                            investigation["questions"].extend([
+                                f"Why does {strongest_name} "
+                                f"generate more revenue than "
+                                f"the other products based "
+                                f"on units sold, pricing, "
+                                f"and discounts?",
+
+                                f"Is {strongest_name}'s "
+                                f"revenue advantage "
+                                f"consistent across the "
+                                f"observed months?",
+
+                                f"What factors are associated "
+                                f"with {strongest_name}'s "
+                                f"higher revenue performance?"
+                            ])
+
                         break
 
         # =================================================
@@ -636,13 +700,6 @@ class BusinessReasoning:
                     f"performance consistent across "
                     f"the observed months?"
                 ])
-
-                # IMPORTANT:
-                # Do NOT add generic recommendations here.
-                #
-                # The investigation must first run.
-                # Recommendations will be generated below
-                # based on the investigation evidence.
 
                 break
 
@@ -925,21 +982,10 @@ class BusinessReasoning:
             # INVESTIGATION-AWARE RECOMMENDATIONS
             # -------------------------------------------------
 
-            # IMPORTANT:
-            # If investigation is not yet completed,
-            # recommend the investigation itself.
-            #
-            # If investigation IS completed, do not repeat
-            # the old generic recommendations.
-
             if not (
                 regional_product_investigation_available
                 or regional_trend_investigation_available
             ):
-
-                # ---------------------------------------------
-                # BEFORE INVESTIGATION
-                # ---------------------------------------------
 
                 if region_analysis_available:
 
@@ -962,10 +1008,6 @@ class BusinessReasoning:
 
             else:
 
-                # ---------------------------------------------
-                # AFTER INVESTIGATION
-                # ---------------------------------------------
-
                 if (
                     regional_product_investigation_available
                 ):
@@ -981,10 +1023,6 @@ class BusinessReasoning:
                 if (
                     regional_trend_investigation_available
                 ):
-
-                    # Find actual declining months
-                    # dynamically instead of hardcoding
-                    # April and May.
 
                     declining_months = []
 
@@ -1071,10 +1109,6 @@ class BusinessReasoning:
                             f"the observed weakness "
                             f"persists."
                         )
-
-                # ---------------------------------------------
-                # PERSISTENCE MONITORING
-                # ---------------------------------------------
 
                 recommendations.append(
                     f"Monitor {weakest_name}'s next "
@@ -1358,4 +1392,4 @@ class BusinessReasoning:
             "investigation": investigation,
             "recommendations": recommendations,
             "issues": issues
-                        }
+    }
