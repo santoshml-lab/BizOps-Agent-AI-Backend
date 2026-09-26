@@ -61,7 +61,34 @@ class InvestigationPlanner:
                     "over time",
                     "historical trend",
                     "sales trend",
-                    "trend"
+                    "trend",
+                    "consistent across",
+                    "consistent over",
+                    "across the observed months",
+                    "across months"
+                ]
+            ):
+
+                tasks.append({
+                    "task_id": f"investigation_{index}",
+                    "description": question,
+                    "type": "data_request",
+                    "tool": "data_analysis",
+                    "status": "pending"
+                })
+
+            # -------------------------------------------------
+            # PRODUCT / PRODUCT MIX INVESTIGATION
+            # -------------------------------------------------
+
+            elif any(
+                phrase in question_lower
+                for phrase in [
+                    "which products contribute",
+                    "product mix",
+                    "products contribute",
+                    "product contribution",
+                    "by product"
                 ]
             ):
 
