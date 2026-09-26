@@ -41,35 +41,58 @@ class InputResolver:
         # ---------------------------------
 
         if tool_name == "web_search":
+    request_lower = user_request.lower()
 
-            search_query = user_request
+    if any(
+        phrase in request_lower
+        for phrase in [
+            "sales dropped",
+            "sales drop",
+            "sales declined",
+            "sales decline",
+            "revenue dropped",
+            "revenue decline",
+            "revenue decreased",
+            "sales slowdown",
+        ]
+    ):
+        search_query = (
+            "external factors that can affect business sales and revenue "
+            "competitor pricing market demand industry trends customer behavior 2026"
+        )
 
-            if any(
-                phrase in user_request.lower()
-                for phrase in [
-                    "market trends",
-                    "market trend",
-                    "sales trends",
-                    "sales trend",
-                    "competitor",
-                    "competition",
-                    "industry trends",
-                ]
-            ):
-                search_query = (
-                    "current business market trends "
-                    "and sales trends 2026"
-                )
+    elif any(
+        phrase in request_lower
+        for phrase in [
+            "competitor",
+            "competition",
+            "market trends",
+            "market trend",
+            "industry trends",
+            "industry trend",
+        ]
+    ):
+        search_query = (
+            "business market trends competitor pricing "
+            "customer demand industry trends 2026"
+        )
 
-            return {
-                "status": "success",
-                "task_id": task_id,
-                "tool": tool_name,
-                "input": {
-                    "query": search_query
-                },
-                "source": "task_specific"
-            }
+    else:
+        search_query = (
+            "business market factors competitor pricing "
+            "customer demand industry trends 2026"
+        )
+
+    return {
+        "status": "success",
+        "task_id": task_id,
+        "tool": tool_name,
+        "input": {
+            "query": search_query
+        },
+        "source": "task_specific"
+    }
+                
 
         # ---------------------------------
         # DATA ANALYSIS
