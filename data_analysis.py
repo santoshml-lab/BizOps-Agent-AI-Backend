@@ -70,6 +70,23 @@ class DataAnalysisTool(BaseTool):
                 break
 
         # -------------------------------------------------
+        # DETECT PRODUCT FROM INVESTIGATION QUESTION
+        # -------------------------------------------------
+
+        available_products = sorted({
+            str(row.get("product")).strip()
+            for row in data
+            if row.get("product")
+        })
+
+        selected_product = None
+
+        for product in available_products:
+            if product.lower() in question_lower:
+                selected_product = product
+                break
+
+        # -------------------------------------------------
         # APPLY REGION FILTER FOR INVESTIGATION
         # -------------------------------------------------
 
@@ -103,6 +120,7 @@ class DataAnalysisTool(BaseTool):
         numeric_summary = {}
 
         for column in columns:
+
             values = [
                 row[column]
                 for row in analysis_data
@@ -113,6 +131,7 @@ class DataAnalysisTool(BaseTool):
             ]
 
             if values:
+
                 numeric_summary[column] = {
                     "count": len(values),
                     "sum": sum(values),
@@ -130,12 +149,14 @@ class DataAnalysisTool(BaseTool):
         product_analysis = {}
 
         for row in analysis_data:
+
             product = row.get("product")
 
             if not product:
                 continue
 
             if product not in product_analysis:
+
                 product_analysis[product] = {
                     "orders": 0,
                     "units_sold": 0,
@@ -159,11 +180,13 @@ class DataAnalysisTool(BaseTool):
             )
 
             if row.get("unit_price") is not None:
+
                 product_data["_unit_prices"].append(
                     float(row["unit_price"])
                 )
 
             if row.get("discount") is not None:
+
                 product_data["_discounts"].append(
                     float(row["discount"])
                 )
@@ -179,13 +202,17 @@ class DataAnalysisTool(BaseTool):
             )
 
             if unit_prices:
+
                 product_data["average_unit_price"] = (
-                    sum(unit_prices) / len(unit_prices)
+                    sum(unit_prices)
+                    / len(unit_prices)
                 )
 
             if discounts:
+
                 product_data["average_discount"] = (
-                    sum(discounts) / len(discounts)
+                    sum(discounts)
+                    / len(discounts)
                 )
 
         # -------------------------------------------------
@@ -202,6 +229,7 @@ class DataAnalysisTool(BaseTool):
                 continue
 
             if region not in region_analysis:
+
                 region_analysis[region] = {
                     "orders": 0,
                     "units_sold": 0,
@@ -236,6 +264,7 @@ class DataAnalysisTool(BaseTool):
             month = str(order_date)[:7]
 
             if month not in monthly_analysis:
+
                 monthly_analysis[month] = {
                     "orders": 0,
                     "units_sold": 0,
@@ -260,6 +289,7 @@ class DataAnalysisTool(BaseTool):
             if product:
 
                 if product not in month_data["products"]:
+
                     month_data["products"][product] = {
                         "orders": 0,
                         "units_sold": 0,
@@ -293,7 +323,9 @@ class DataAnalysisTool(BaseTool):
 
         monthly_change = {}
 
-        months = list(monthly_analysis.keys())
+        months = list(
+            monthly_analysis.keys()
+        )
 
         for index in range(1, len(months)):
 
@@ -318,19 +350,28 @@ class DataAnalysisTool(BaseTool):
             )
 
             if previous_revenue != 0:
+
                 change_percentage = (
                     change_amount
                     / previous_revenue
                 ) * 100
+
             else:
+
                 change_percentage = 0
 
             monthly_change[current_month] = {
+
                 "previous_month": previous_month,
+
                 "previous_revenue": previous_revenue,
+
                 "current_revenue": current_revenue,
+
                 "change_amount": change_amount,
+
                 "change_percentage": change_percentage,
+
                 "direction": (
                     "increase"
                     if change_amount > 0
@@ -372,18 +413,29 @@ class DataAnalysisTool(BaseTool):
         if (
             selected_region
             and (
-                "which products contribute" in question_lower
-                or "products contribute" in question_lower
-                or "product mix" in question_lower
-                or "product contribution" in question_lower
-                or "by product" in question_lower
+                "which products contribute"
+                in question_lower
+                or "products contribute"
+                in question_lower
+                or "product mix"
+                in question_lower
+                or "product contribution"
+                in question_lower
+                or "by product"
+                in question_lower
             )
         ):
 
             investigation_result = {
-                "type": "regional_product_contribution",
-                "region": selected_region,
-                "product_analysis": product_analysis
+
+                "type":
+                    "regional_product_contribution",
+
+                "region":
+                    selected_region,
+
+                "product_analysis":
+                    product_analysis
             }
 
         # -------------------------------------------------
@@ -393,24 +445,178 @@ class DataAnalysisTool(BaseTool):
         elif (
             selected_region
             and (
-                "persistent" in question_lower
-                or "over time" in question_lower
-                or "historical trend" in question_lower
-                or "sales trend" in question_lower
-                or "monthly" in question_lower
-                or "month" in question_lower
-                or "consistent across" in question_lower
-                or "consistent over" in question_lower
-                or "across the observed months" in question_lower
-                or "across months" in question_lower
+                "persistent"
+                in question_lower
+                or "over time"
+                in question_lower
+                or "historical trend"
+                in question_lower
+                or "sales trend"
+                in question_lower
+                or "monthly"
+                in question_lower
+                or "month"
+                in question_lower
+                or "consistent across"
+                in question_lower
+                or "consistent over"
+                in question_lower
+                or "across the observed months"
+                in question_lower
+                or "across months"
+                in question_lower
             )
         ):
 
             investigation_result = {
-                "type": "regional_historical_trend",
-                "region": selected_region,
-                "monthly_analysis": monthly_analysis,
-                "monthly_change": monthly_change
+
+                "type":
+                    "regional_historical_trend",
+
+                "region":
+                    selected_region,
+
+                "monthly_analysis":
+                    monthly_analysis,
+
+                "monthly_change":
+                    monthly_change
+            }
+
+        # -------------------------------------------------
+        # PRODUCT PERFORMANCE INVESTIGATION
+        # -------------------------------------------------
+
+        elif (
+            selected_product
+            and (
+                "why does" in question_lower
+                or "why is" in question_lower
+                or "why does this product"
+                in question_lower
+                or "why does the top"
+                in question_lower
+                or "why does it outperform"
+                in question_lower
+                or "why does it generate"
+                in question_lower
+                or "factors driving"
+                in question_lower
+                or "factors behind"
+                in question_lower
+                or "what factors"
+                in question_lower
+                or "what drives"
+                in question_lower
+                or "revenue drivers"
+                in question_lower
+                or "performance drivers"
+                in question_lower
+                or "higher revenue performance"
+                in question_lower
+                or "outperforms"
+                in question_lower
+            )
+        ):
+
+            target_data = product_analysis.get(
+                selected_product
+            )
+
+            comparison = {}
+
+            for product, product_data in (
+                product_analysis.items()
+            ):
+
+                comparison[product] = {
+
+                    "orders":
+                        product_data["orders"],
+
+                    "units_sold":
+                        product_data["units_sold"],
+
+                    "revenue":
+                        product_data["revenue"],
+
+                    "average_unit_price":
+                        product_data[
+                            "average_unit_price"
+                        ],
+
+                    "average_discount":
+                        product_data[
+                            "average_discount"
+                        ]
+                }
+
+            # ---------------------------------------------
+            # CALCULATE DIFFERENCES FROM OTHER PRODUCTS
+            # ---------------------------------------------
+
+            differences = {}
+
+            if target_data:
+
+                for product, product_data in (
+                    product_analysis.items()
+                ):
+
+                    if product == selected_product:
+                        continue
+
+                    differences[product] = {
+
+                        "revenue_difference":
+                            (
+                                target_data["revenue"]
+                                - product_data["revenue"]
+                            ),
+
+                        "units_sold_difference":
+                            (
+                                target_data["units_sold"]
+                                - product_data["units_sold"]
+                            ),
+
+                        "average_unit_price_difference":
+                            (
+                                target_data[
+                                    "average_unit_price"
+                                ]
+                                - product_data[
+                                    "average_unit_price"
+                                ]
+                            ),
+
+                        "average_discount_difference":
+                            (
+                                target_data[
+                                    "average_discount"
+                                ]
+                                - product_data[
+                                    "average_discount"
+                                ]
+                            )
+                    }
+
+            investigation_result = {
+
+                "type":
+                    "product_performance",
+
+                "target_product":
+                    selected_product,
+
+                "target_product_data":
+                    target_data,
+
+                "comparison":
+                    comparison,
+
+                "differences":
+                    differences
             }
 
         # -------------------------------------------------
@@ -435,6 +641,7 @@ class DataAnalysisTool(BaseTool):
                 for product in products:
 
                     if product.lower() in question_lower:
+
                         selected_products.append(
                             product
                         )
@@ -442,120 +649,4 @@ class DataAnalysisTool(BaseTool):
                 if len(selected_products) >= 2:
 
                     product_1 = selected_products[0]
-                    product_2 = selected_products[1]
-
-                else:
-
-                    product_1 = strongest_product[0]
-                    product_2 = weakest_product[0]
-
-                first = product_analysis[
-                    product_1
-                ]
-
-                second = product_analysis[
-                    product_2
-                ]
-
-                investigation_result = {
-                    "type": "product_comparison",
-                    "products": [
-                        product_1,
-                        product_2
-                    ],
-                    "comparison": {
-                        product_1: first,
-                        product_2: second
-                    },
-                    "differences": {
-                        "revenue": (
-                            first["revenue"]
-                            - second["revenue"]
-                        ),
-                        "units_sold": (
-                            first["units_sold"]
-                            - second["units_sold"]
-                        ),
-                        "average_unit_price": (
-                            first[
-                                "average_unit_price"
-                            ]
-                            - second[
-                                "average_unit_price"
-                            ]
-                        ),
-                        "average_discount": (
-                            first[
-                                "average_discount"
-                            ]
-                            - second[
-                                "average_discount"
-                            ]
-                        ),
-                    }
-                }
-
-        # -------------------------------------------------
-        # GENERAL HISTORICAL TREND
-        # -------------------------------------------------
-
-        elif (
-            "persistent" in question_lower
-            or "over time" in question_lower
-            or "historical trend" in question_lower
-            or "sales trend" in question_lower
-            or "monthly" in question_lower
-            or "month" in question_lower
-            or "sales dropped" in question_lower
-            or "sales decline" in question_lower
-            or "sales declined" in question_lower
-        ):
-
-            investigation_result = {
-                "type": "historical_trend",
-                "monthly_analysis": monthly_analysis,
-                "monthly_change": monthly_change
-            }
-
-        # -------------------------------------------------
-        # FINAL RESULT
-        # -------------------------------------------------
-
-        result = {
-            "status": "success",
-            "row_count": row_count,
-            "columns": columns,
-            "numeric_summary": numeric_summary,
-            "product_analysis": product_analysis,
-            "region_analysis": region_analysis,
-            "monthly_analysis": monthly_analysis,
-            "monthly_change": monthly_change
-        }
-
-        if selected_region:
-            result["analysis_scope"] = {
-                "type": "region",
-                "region": selected_region
-            }
-
-        if strongest_product:
-
-            result["strongest_product"] = {
-                "product": strongest_product[0],
-                **strongest_product[1]
-            }
-
-        if weakest_product:
-
-            result["weakest_product"] = {
-                "product": weakest_product[0],
-                **weakest_product[1]
-            }
-
-        if investigation_result:
-
-            result["investigation"] = (
-                investigation_result
-            )
-
-        return result
+                    product_2 = selected
