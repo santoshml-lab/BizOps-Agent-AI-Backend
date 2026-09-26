@@ -101,6 +101,87 @@ class BusinessReasoning:
                 product_comparison_available = True
 
         # -------------------------------------------------
+        # MONTHLY SALES TREND DETECTION
+        # -------------------------------------------------
+
+        monthly_trend_detected = False
+
+        latest_month = None
+        previous_month = None
+        latest_revenue = None
+        previous_revenue = None
+        latest_change_percentage = None
+        latest_direction = None
+
+        for result in results:
+
+            if result.get("status") != "success":
+                continue
+
+            if result.get("tool") != "data_analysis":
+                continue
+
+            output = result.get("output") or {}
+
+            monthly_change = output.get(
+                "monthly_change",
+                {}
+            )
+
+            if not isinstance(
+                monthly_change,
+                dict
+            ):
+                continue
+
+            if not monthly_change:
+                continue
+
+            sorted_months = sorted(
+                monthly_change.keys()
+            )
+
+            if not sorted_months:
+                continue
+
+            latest_month = sorted_months[-1]
+
+            latest_data = monthly_change.get(
+                latest_month,
+                {}
+            )
+
+            if not isinstance(
+                latest_data,
+                dict
+            ):
+                continue
+
+            previous_month = latest_data.get(
+                "previous_month"
+            )
+
+            latest_revenue = latest_data.get(
+                "current_revenue"
+            )
+
+            previous_revenue = latest_data.get(
+                "previous_revenue"
+            )
+
+            latest_change_percentage = latest_data.get(
+                "change_percentage"
+            )
+
+            latest_direction = latest_data.get(
+                "direction"
+            )
+
+            monthly_trend_detected = True
+
+            break
+
+        # -------------------------------------------------
         # PROCESS RESULTS
         # -------------------------------------------------
 
@@ -312,15 +393,15 @@ class BusinessReasoning:
                                     )
 
                                 # -------------------------------------------------
-                                # NEW RECOMMENDATION AFTER HISTORICAL EVIDENCE
+                                # RECOMMENDATION FROM HISTORICAL EVIDENCE
                                 # -------------------------------------------------
 
                                 recommendations.append(
                                     f"Investigate the drivers behind "
-                                    f"{weakest_name}'s persistent revenue "
-                                    f"gap, focusing on pricing, unit "
-                                    f"sales, regional performance, and "
-                                    f"customer demand."
+                                    f"{weakest_name}'s revenue gap, "
+                                    f"focusing on pricing, unit sales, "
+                                    f"regional performance, and customer "
+                                    f"demand."
                                 )
 
                         # Historical evidence has resolved
@@ -544,6 +625,92 @@ class BusinessReasoning:
                     )
 
         # -------------------------------------------------
+        # MONTHLY SALES REALITY CHECK
+        # -------------------------------------------------
+
+        if monthly_trend_detected:
+
+            if latest_direction == "increase":
+
+                insights.append(
+                    f"Sales did not drop in the latest "
+                    f"observed month ({latest_month}). "
+                    f"Revenue increased from "
+                    f"{previous_revenue:,.2f} in "
+                    f"{previous_month} to "
+                    f"{latest_revenue:,.2f}, a "
+                    f"{latest_change_percentage:.2f}% increase."
+                )
+
+                business_concern = (
+                    f"The latest observed month shows "
+                    f"revenue growth rather than a sales drop. "
+                    f"Earlier periods should be examined to "
+                    f"identify the actual decline."
+                )
+
+            elif latest_direction == "decrease":
+
+                insights.append(
+                    f"Sales decreased in the latest observed "
+                    f"month ({latest_month}) by "
+                    f"{abs(latest_change_percentage):.2f}% "
+                    f"compared with {previous_month}."
+                )
+
+                business_concern = (
+                    f"The latest observed month shows "
+                    f"a revenue decline that requires "
+                    f"further investigation."
+                )
+
+            elif latest_change_percentage is not None:
+
+                if latest_change_percentage > 0:
+
+                    insights.append(
+                        f"Sales increased in the latest "
+                        f"observed month ({latest_month}) "
+                        f"by {latest_change_percentage:.2f}% "
+                        f"compared with {previous_month}."
+                    )
+
+                    business_concern = (
+                        f"The latest observed month shows "
+                        f"revenue growth rather than a "
+                        f"sales decline."
+                    )
+
+                elif latest_change_percentage < 0:
+
+                    insights.append(
+                        f"Sales decreased in the latest "
+                        f"observed month ({latest_month}) "
+                        f"by {abs(latest_change_percentage):.2f}% "
+                        f"compared with {previous_month}."
+                    )
+
+                    business_concern = (
+                        f"The latest observed month shows "
+                        f"a revenue decline that requires "
+                        f"further investigation."
+                    )
+
+                else:
+
+                    insights.append(
+                        f"Sales were flat in the latest "
+                        f"observed month ({latest_month}) "
+                        f"compared with {previous_month}."
+                    )
+
+                    business_concern = (
+                        f"The latest observed month shows "
+                        f"stable revenue with no material "
+                        f"month-over-month change."
+                    )
+
+        # -------------------------------------------------
         # ADD GENERAL RECOMMENDATION ONLY IF INVESTIGATION
         # IS STILL REQUIRED
         # -------------------------------------------------
@@ -594,6 +761,36 @@ class BusinessReasoning:
             investigation["questions"] = []
 
         # -------------------------------------------------
+        # ENSURE ACTIONABLE RECOMMENDATIONS
+        # -------------------------------------------------
+
+        if monthly_trend_detected:
+
+            if latest_direction == "increase":
+
+                recommendations.extend([
+                    "Review the earlier declining months to identify which products, regions, or sales segments caused the previous slowdown.",
+                    "Investigate Product B and Product C trends to identify opportunities to improve units sold, revenue, or customer demand.",
+                    "Monitor monthly revenue, units sold, pricing, and discounts in a recurring dashboard so future declines can be detected early."
+                ])
+
+            elif latest_direction == "decrease":
+
+                recommendations.extend([
+                    "Identify which products and regions contributed most to the latest revenue decline.",
+                    "Compare pricing, discounts, and unit sales against stronger-performing products to identify possible commercial drivers.",
+                    "Monitor competitor and industry trends and use the findings to evaluate pricing, promotions, or sales strategy."
+                ])
+
+            else:
+
+                recommendations.extend([
+                    "Review recent product and regional trends to identify areas of weak or stagnant performance.",
+                    "Compare pricing, discounts, and unit sales across products to identify potential improvement opportunities.",
+                    "Continue monitoring monthly revenue and key sales drivers so changes in performance can be detected early."
+                ])
+
+        # -------------------------------------------------
         # DEDUPLICATION
         # -------------------------------------------------
 
@@ -624,6 +821,12 @@ class BusinessReasoning:
         )
 
         # -------------------------------------------------
+        # KEEP RECOMMENDATIONS LIMITED TO 3
+        # -------------------------------------------------
+
+        recommendations = recommendations[:3]
+
+        # -------------------------------------------------
         # FINAL STATUS
         # -------------------------------------------------
 
@@ -648,4 +851,4 @@ class BusinessReasoning:
             "investigation": investigation,
             "recommendations": recommendations,
             "issues": issues
-                    }
+                }
