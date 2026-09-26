@@ -40,6 +40,20 @@ class Orchestrator:
         task_inputs: Dict[str, Dict[str, Any]],
         session_id: str = "default_session"
     ) -> Dict[str, Any]:
+            def run(
+        self,
+        user_request: str,
+        task_inputs: Dict[str, Dict[str, Any]],
+        session_id: str = "default_session"
+    ) -> Dict[str, Any]:
+
+        execution_results = []
+        validation_results = []
+        recovery_results = []
+
+        # -------------------------------------------------
+        # MEMORY
+        # -------------------------------------------------
 
         # -------------------------------------------------
         # MEMORY
