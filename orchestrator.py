@@ -12,6 +12,10 @@ from input_resolver import InputResolver
 from result_aggregator import ResultAggregator
 from business_reasoning import BusinessReasoning
 from investigation import InvestigationPlanner
+from groq_planner import (
+    create_llm_plan,
+    validate_llm_plan,
+)
 
 
 class Orchestrator:
@@ -74,16 +78,80 @@ class Orchestrator:
 
         self.trace.add_event(
             "PLANNING",
-            "Agent is creating an execution plan.",
+            "BizOps Agent is creating an execution plan.",
             {
-                "user_request": user_request
+                "user_request": user_request,
+                "planner": "groq_llm"
             }
         )
 
-        plan = self.planner.plan(
-            user_request,
-            memory_context
-        )
+        try:
+
+            llm_plan_result = create_llm_plan(
+                user_request
+            )
+
+            llm_plan = llm_plan_result.get(
+                "plan",
+                {}
+            )
+
+            plan_validation = validate_llm_plan(
+                llm_plan
+            )
+
+            self.trace.add_event(
+                "LLM_PLAN_VALIDATION",
+                "BizOps Agent validated the Groq-generated plan.",
+                {
+                    "status": plan_validation.get(
+                        "status"
+                    ),
+                    "task_count": plan_validation.get(
+                        "task_count",
+                        0
+                    ),
+                    "issues": plan_validation.get(
+                        "issues",
+                        []
+                    )
+                }
+            )
+
+            if plan_validation.get(
+                "status"
+            ) != "validated":
+
+                raise ValueError(
+                    "Groq-generated plan failed validation."
+                )
+
+            plan = {
+                "status": "success",
+                "tasks": plan_validation.get(
+                    "tasks",
+                    []
+                ),
+                "planner": "groq_llm"
+            }
+
+        except Exception as error:
+
+            self.trace.add_event(
+                "LLM_PLAN_FALLBACK",
+                "Groq planning failed. Falling back to deterministic planner.",
+                {
+                    "error_type": type(error).__name__,
+                    "error": str(error)
+                }
+            )
+
+            plan = self.planner.plan(
+                user_request,
+                memory_context
+            )
+
+            plan["planner"] = "deterministic_fallback"
 
         tasks = plan.get(
             "tasks",
@@ -96,13 +164,16 @@ class Orchestrator:
             {
                 "task_count": len(tasks),
                 "tasks": tasks,
-                "memory_used": len(memory_context) > 0
+                "planner": plan.get(
+                    "planner"
+                ),
+                "memory_used": len(
+                    memory_context
+                ) > 0
             }
         )
-
-        execution_results = []
-        validation_results = []
-        recovery_results = []
+        
+        
 
         # -------------------------------------------------
         # TASK EXECUTION
