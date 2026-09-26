@@ -45,13 +45,6 @@ class Orchestrator:
         validation_results = []
         recovery_results = []
 
-        
-        
-
-        # -------------------------------------------------
-        # MEMORY
-        # -------------------------------------------------
-
         # -------------------------------------------------
         # MEMORY
         # -------------------------------------------------
@@ -183,8 +176,6 @@ class Orchestrator:
                 ) > 0
             }
         )
-        
-        
 
         # -------------------------------------------------
         # TASK EXECUTION
@@ -473,8 +464,6 @@ class Orchestrator:
             aggregated_result,
             user_request
         )
-            
-        
 
         self.trace.add_event(
             "BUSINESS_REASONING",
@@ -573,62 +562,53 @@ class Orchestrator:
                 )
 
                 # ---------------------------------------------
-# INTERNAL DATA INVESTIGATION
-# ---------------------------------------------
+                # INTERNAL DATA INVESTIGATION
+                # ---------------------------------------------
 
-if investigation_type in {
-    "data_request",
-    "product_performance"
-}:
+                if investigation_type in {
+                    "data_request",
+                    "product_performance"
+                }:
 
-    investigation_execution = (
-        self.executor.execute_task(
-            {
-                "task_id": investigation_task.get(
-                    "task_id"
-                ),
-                "description": investigation_task.get(
-                    "description"
-                ),
-                "tool": investigation_tool,
-                "status": "pending"
-            },
-            {
-                "investigation_question": (
-                    investigation_task.get(
-                        "description",
-                        ""
+                    investigation_execution = (
+                        self.executor.execute_task(
+                            {
+                                "task_id": investigation_task.get(
+                                    "task_id"
+                                ),
+                                "description": investigation_task.get(
+                                    "description"
+                                ),
+                                "tool": investigation_tool,
+                                "status": "pending"
+                            },
+                            {
+                                "investigation_question": (
+                                    investigation_task.get(
+                                        "description",
+                                        ""
+                                    )
+                                )
+                            }
+                        )
                     )
-                )
-            }
-        )
-    )
 
-    investigation_results.append({
-        "task_id": investigation_task.get(
-            "task_id"
-        ),
-        "type": investigation_type,
-        "status": investigation_execution.get(
-            "status"
-        ),
-        "tool": investigation_tool,
-        "output": investigation_execution.get(
-            "output"
-        ),
-        "error": investigation_execution.get(
-            "error"
-        )
-    })
-
-                
-                
-
-                
-                
-                
-
-                    
+                    investigation_results.append({
+                        "task_id": investigation_task.get(
+                            "task_id"
+                        ),
+                        "type": investigation_type,
+                        "status": investigation_execution.get(
+                            "status"
+                        ),
+                        "tool": investigation_tool,
+                        "output": investigation_execution.get(
+                            "output"
+                        ),
+                        "error": investigation_execution.get(
+                            "error"
+                        )
+                    })
 
                 # ---------------------------------------------
                 # EXTERNAL RESEARCH
@@ -819,12 +799,8 @@ if investigation_type in {
                 self.business_reasoning.reason(
                     re_reasoning_input,
                     user_request
-    )
+                )
             )
-                
-                    
-                
-            
 
             self.trace.add_event(
                 "RE_REASONING",
