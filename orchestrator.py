@@ -470,8 +470,11 @@ class Orchestrator:
         # -------------------------------------------------
 
         reasoning_result = self.business_reasoning.reason(
-            aggregated_result
+            aggregated_result,
+            user_request
         )
+            
+        
 
         self.trace.add_event(
             "BUSINESS_REASONING",
