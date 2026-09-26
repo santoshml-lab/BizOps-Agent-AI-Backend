@@ -119,7 +119,6 @@ class BusinessReasoning:
             for keyword in monthly_keywords
         )
 
-        # Product gets priority when explicitly mentioned.
         if product_query:
             query_intent = "product"
 
@@ -143,6 +142,9 @@ class BusinessReasoning:
         product_comparison_available = False
 
         region_analysis_available = False
+
+        regional_product_investigation_available = False
+        regional_trend_investigation_available = False
 
         # =================================================
         # WEB EVIDENCE
@@ -221,18 +223,30 @@ class BusinessReasoning:
                     )
 
         # =================================================
-        # DETECT INVESTIGATION EVIDENCE
+        # FIND DATA ANALYSIS OUTPUTS
         # =================================================
+
+        analysis_outputs = []
 
         for result in results:
 
-            if result.get("status") != "success":
-                continue
+            if (
+                result.get("status") == "success"
+                and result.get("tool") == "data_analysis"
+            ):
 
-            if result.get("tool") != "data_analysis":
-                continue
+                data_analysis_found = True
 
-            output = result.get("output") or {}
+                output = result.get("output") or {}
+
+                if isinstance(output, dict):
+                    analysis_outputs.append(output)
+
+        # =================================================
+        # DETECT INVESTIGATION EVIDENCE
+        # =================================================
+
+        for output in analysis_outputs:
 
             investigation_output = output.get(
                 "investigation",
@@ -255,24 +269,15 @@ class BusinessReasoning:
             if investigation_type == "product_comparison":
                 product_comparison_available = True
 
-        # =================================================
-        # FIND DATA ANALYSIS OUTPUT
-        # =================================================
-
-        analysis_outputs = []
-
-        for result in results:
-
-            if (
-                result.get("status") == "success"
-                and result.get("tool") == "data_analysis"
+            if investigation_type == (
+                "regional_product_contribution"
             ):
-                data_analysis_found = True
+                regional_product_investigation_available = True
 
-                output = result.get("output") or {}
-
-                if isinstance(output, dict):
-                    analysis_outputs.append(output)
+            if investigation_type == (
+                "regional_historical_trend"
+            ):
+                regional_trend_investigation_available = True
 
         # =================================================
         # EXTERNAL MARKET CONTEXT
@@ -312,10 +317,6 @@ class BusinessReasoning:
                 ) or not product_analysis:
                     continue
 
-                # -----------------------------------------
-                # Detect explicitly requested products
-                # -----------------------------------------
-
                 requested_products = []
 
                 for product_name in product_analysis:
@@ -326,7 +327,7 @@ class BusinessReasoning:
                         )
 
                 # -----------------------------------------
-                # Explicit comparison
+                # EXPLICIT COMPARISON
                 # -----------------------------------------
 
                 if len(requested_products) >= 2:
@@ -426,122 +427,25 @@ class BusinessReasoning:
                             f"pricing, discounts, and demand."
                         )
 
-                        # ---------------------------------
-                        # Historical comparison
-                        # ---------------------------------
-
-                        if historical_trend_available:
-
-                            for historical_output in analysis_outputs:
-
-                                investigation_data = (
-                                    historical_output.get(
-                                        "investigation",
-                                        {}
-                                    )
-                                )
-
-                                if (
-                                    investigation_data.get(
-                                        "type"
-                                    )
-                                    != "historical_trend"
-                                ):
-                                    continue
-
-                                monthly_analysis = (
-                                    investigation_data.get(
-                                        "monthly_analysis",
-                                        {}
-                                    )
-                                )
-
-                                if not monthly_analysis:
-                                    continue
-
-                                comparison_months = 0
-                                first_higher_months = 0
-
-                                for month_data in (
-                                    monthly_analysis.values()
-                                ):
-
-                                    if not isinstance(
-                                        month_data,
-                                        dict
-                                    ):
-                                        continue
-
-                                    first_data = (
-                                        month_data.get(
-                                            first_product,
-                                            {}
-                                        )
-                                    )
-
-                                    second_data = (
-                                        month_data.get(
-                                            second_product,
-                                            {}
-                                        )
-                                    )
-
-                                    if (
-                                        first_data
-                                        and second_data
-                                    ):
-
-                                        comparison_months += 1
-
-                                        if (
-                                            first_data.get(
-                                                "revenue",
-                                                0
-                                            )
-                                            >
-                                            second_data.get(
-                                                "revenue",
-                                                0
-                                            )
-                                        ):
-                                            first_higher_months += 1
-
-                                if comparison_months:
-
-                                    insights.append(
-                                        f"{first_product} generated "
-                                        f"higher monthly revenue than "
-                                        f"{second_product} in "
-                                        f"{first_higher_months} of "
-                                        f"{comparison_months} observed "
-                                        f"months."
-                                    )
-
-                        # ---------------------------------
-                        # Recommendations
-                        # ---------------------------------
-
                         recommendations.extend([
                             f"Compare the pricing and discount "
                             f"strategy of {first_product} and "
-                            f"{second_product} to identify possible "
-                            f"commercial drivers of the revenue gap.",
+                            f"{second_product}.",
 
                             f"Analyze monthly unit sales of "
                             f"{first_product} and {second_product} "
-                            f"to identify when the performance gap "
-                            f"expanded or narrowed.",
+                            f"to identify when the performance "
+                            f"gap expanded or narrowed.",
 
                             f"Review regional and customer-level "
                             f"performance for {first_product} and "
-                            f"{second_product} to identify demand "
-                            f"differences."
+                            f"{second_product}."
                         ])
 
                         break
 
                 # -----------------------------------------
-                # General product question
+                # GENERAL PRODUCT QUESTION
                 # -----------------------------------------
 
                 else:
@@ -576,14 +480,6 @@ class BusinessReasoning:
                             f"{weakest.get('revenue', 0):,.2f}."
                         )
 
-                        insights.append(
-                            f"{strongest_name} sold "
-                            f"{strongest.get('units_sold', 0)} "
-                            f"units compared with "
-                            f"{weakest_name}'s "
-                            f"{weakest.get('units_sold', 0)} units."
-                        )
-
                         business_concern = (
                             f"The main product performance gap "
                             f"is between {strongest_name} and "
@@ -591,15 +487,15 @@ class BusinessReasoning:
                         )
 
                         recommendations.extend([
-                            f"Compare pricing and discount strategy "
-                            f"across the strongest and weakest products.",
+                            "Compare pricing and discount "
+                            "strategy across products.",
 
-                            f"Review unit-sales trends to identify "
-                            f"products with weakening demand.",
+                            "Review unit-sales trends to identify "
+                            "products with weakening demand.",
 
-                            f"Analyze regional performance to find "
-                            f"where weaker products have the largest "
-                            f"growth opportunity."
+                            "Analyze regional performance to find "
+                            "where weaker products have the "
+                            "largest growth opportunity."
                         ])
 
                         break
@@ -609,6 +505,10 @@ class BusinessReasoning:
         # =================================================
 
         elif query_intent == "region":
+
+            # -------------------------------------------------
+            # INITIAL REGIONAL ANALYSIS
+            # -------------------------------------------------
 
             for output in analysis_outputs:
 
@@ -727,6 +627,258 @@ class BusinessReasoning:
                 ])
 
                 break
+
+            # -------------------------------------------------
+            # INVESTIGATION EVIDENCE
+            # -------------------------------------------------
+
+            for output in analysis_outputs:
+
+                investigation_data = output.get(
+                    "investigation",
+                    {}
+                )
+
+                if not isinstance(
+                    investigation_data,
+                    dict
+                ):
+                    continue
+
+                investigation_type = investigation_data.get(
+                    "type"
+                )
+
+                # ---------------------------------------------
+                # REGIONAL PRODUCT CONTRIBUTION
+                # ---------------------------------------------
+
+                if (
+                    investigation_type
+                    == "regional_product_contribution"
+                ):
+
+                    region = investigation_data.get(
+                        "region"
+                    )
+
+                    product_analysis = investigation_data.get(
+                        "product_analysis",
+                        {}
+                    )
+
+                    if not isinstance(
+                        product_analysis,
+                        dict
+                    ) or not product_analysis:
+                        continue
+
+                    ranked_products = sorted(
+                        product_analysis.items(),
+                        key=lambda item: item[1].get(
+                            "revenue",
+                            0
+                        ),
+                        reverse=True
+                    )
+
+                    top_product_name = ranked_products[0][0]
+                    top_product_data = ranked_products[0][1]
+
+                    total_revenue = sum(
+                        product_data.get(
+                            "revenue",
+                            0
+                        )
+                        for _, product_data
+                        in ranked_products
+                    )
+
+                    top_revenue = top_product_data.get(
+                        "revenue",
+                        0
+                    )
+
+                    top_share = (
+                        top_revenue / total_revenue * 100
+                        if total_revenue
+                        else 0
+                    )
+
+                    insights.append(
+                        f"In {region}, "
+                        f"{top_product_name} contributes the "
+                        f"most recorded revenue at "
+                        f"{top_revenue:,.2f}, representing "
+                        f"approximately {top_share:.2f}% of "
+                        f"the region's recorded revenue."
+                    )
+
+                    if len(ranked_products) >= 2:
+
+                        second_name = ranked_products[1][0]
+                        second_data = ranked_products[1][1]
+
+                        insights.append(
+                            f"{second_name} contributes "
+                            f"{second_data.get('revenue', 0):,.2f} "
+                            f"in recorded revenue in {region}, "
+                            f"while the lowest contributing product "
+                            f"generates "
+                            f"{ranked_products[-1][1].get('revenue', 0):,.2f}."
+                        )
+
+                    business_concern = (
+                        f"{region}'s performance is concentrated "
+                        f"across its product mix, with "
+                        f"{top_product_name} being the largest "
+                        f"recorded revenue contributor."
+                    )
+
+                # ---------------------------------------------
+                # REGIONAL HISTORICAL TREND
+                # ---------------------------------------------
+
+                elif (
+                    investigation_type
+                    == "regional_historical_trend"
+                ):
+
+                    region = investigation_data.get(
+                        "region"
+                    )
+
+                    monthly_analysis = investigation_data.get(
+                        "monthly_analysis",
+                        {}
+                    )
+
+                    monthly_change = investigation_data.get(
+                        "monthly_change",
+                        {}
+                    )
+
+                    if not isinstance(
+                        monthly_analysis,
+                        dict
+                    ):
+                        continue
+
+                    if monthly_analysis:
+
+                        ordered_months = sorted(
+                            monthly_analysis.keys()
+                        )
+
+                        first_month = ordered_months[0]
+                        last_month = ordered_months[-1]
+
+                        first_revenue = monthly_analysis[
+                            first_month
+                        ].get(
+                            "revenue",
+                            0
+                        )
+
+                        last_revenue = monthly_analysis[
+                            last_month
+                        ].get(
+                            "revenue",
+                            0
+                        )
+
+                        insights.append(
+                            f"For {region}, recorded monthly "
+                            f"revenue ranged from "
+                            f"{first_revenue:,.2f} in "
+                            f"{first_month} to "
+                            f"{last_revenue:,.2f} in "
+                            f"{last_month} over the available "
+                            f"observations."
+                        )
+
+                    decrease_months = []
+
+                    if isinstance(
+                        monthly_change,
+                        dict
+                    ):
+
+                        for month, change_data in (
+                            monthly_change.items()
+                        ):
+
+                            if (
+                                isinstance(
+                                    change_data,
+                                    dict
+                                )
+                                and change_data.get(
+                                    "direction"
+                                ) == "decrease"
+                            ):
+
+                                decrease_months.append(
+                                    (
+                                        month,
+                                        change_data.get(
+                                            "change_percentage",
+                                            0
+                                        )
+                                    )
+                                )
+
+                    if decrease_months:
+
+                        decrease_text = ", ".join(
+                            f"{month} ({abs(change):.2f}% decrease)"
+                            for month, change
+                            in decrease_months
+                        )
+
+                        insights.append(
+                            f"{region} recorded month-over-month "
+                            f"revenue decreases in "
+                            f"{decrease_text}."
+                        )
+
+                        business_concern = (
+                            f"{region} shows periods of recorded "
+                            f"revenue decline that should be "
+                            f"examined alongside product mix, "
+                            f"pricing, discounts, and demand."
+                        )
+
+                    else:
+
+                        insights.append(
+                            f"No month-over-month revenue "
+                            f"decreases were observed for "
+                            f"{region} in the available data."
+                        )
+
+            # -------------------------------------------------
+            # INVESTIGATION-BASED RECOMMENDATIONS
+            # -------------------------------------------------
+
+            if (
+                regional_product_investigation_available
+                or regional_trend_investigation_available
+            ):
+
+                recommendations.extend([
+                    "Review the strongest and weakest products "
+                    "within the weakest region and identify "
+                    "product-specific demand opportunities.",
+
+                    "Compare the weakest region's pricing, "
+                    "discounts, and unit sales with stronger "
+                    "regions.",
+
+                    "Investigate the months showing revenue "
+                    "declines to determine whether the pattern "
+                    "is associated with product mix or demand."
+                ])
 
         # =================================================
         # MONTHLY REASONING
@@ -869,9 +1021,6 @@ class BusinessReasoning:
 
         if web_search_found and external_evidence:
 
-            # External evidence matters most when
-            # the query is actually about a decline/trend.
-
             if query_intent == "monthly":
 
                 evidence_gaps.append(
@@ -897,9 +1046,6 @@ class BusinessReasoning:
 
             else:
 
-                # Keep web evidence as context but do not
-                # turn it into an investigation for unrelated
-                # product/region questions.
                 evidence_gaps = [
                     gap
                     for gap in evidence_gaps
@@ -913,15 +1059,10 @@ class BusinessReasoning:
         # =================================================
 
         if query_intent == "product":
-
-            # Product comparison investigation is only
-            # relevant to explicit product questions.
             pass
 
         elif query_intent == "region":
 
-            # Never create Product A/C investigation
-            # for a region query.
             investigation["questions"] = [
                 question
                 for question in investigation["questions"]
@@ -996,4 +1137,4 @@ class BusinessReasoning:
             "investigation": investigation,
             "recommendations": recommendations,
             "issues": issues
-        }
+            }
