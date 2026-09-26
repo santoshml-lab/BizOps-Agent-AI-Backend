@@ -805,9 +805,14 @@ class Orchestrator:
 
             re_reasoning_result = (
                 self.business_reasoning.reason(
-                    re_reasoning_input
-                )
+                    re_reasoning_input,
+                    user_request
+    )
             )
+                
+                    
+                
+            
 
             self.trace.add_event(
                 "RE_REASONING",
