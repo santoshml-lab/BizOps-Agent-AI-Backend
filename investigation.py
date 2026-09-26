@@ -48,7 +48,7 @@ class InvestigationPlanner:
             question_lower = question.lower()
 
             # -------------------------------------------------
-            # INTERNAL BUSINESS DATA INVESTIGATION
+            # INTERNAL BUSINESS DATA / HISTORICAL INVESTIGATION
             # -------------------------------------------------
 
             if any(
@@ -73,6 +73,44 @@ class InvestigationPlanner:
                     "task_id": f"investigation_{index}",
                     "description": question,
                     "type": "data_request",
+                    "tool": "data_analysis",
+                    "status": "pending"
+                })
+
+            # -------------------------------------------------
+            # PRODUCT PERFORMANCE / WHY INVESTIGATION
+            # -------------------------------------------------
+
+            elif any(
+                phrase in question_lower
+                for phrase in [
+                    "why does",
+                    "why is",
+                    "why does this product",
+                    "why is this product",
+                    "why does the top",
+                    "why is the top",
+                    "why does it outperform",
+                    "why does it generate",
+                    "why is it generating",
+                    "factors driving",
+                    "factors behind",
+                    "reasons behind",
+                    "reason behind",
+                    "what factors",
+                    "what drives",
+                    "driving revenue",
+                    "revenue drivers",
+                    "performance drivers",
+                    "outperforms other products",
+                    "outperforms others"
+                ]
+            ):
+
+                tasks.append({
+                    "task_id": f"investigation_{index}",
+                    "description": question,
+                    "type": "product_performance",
                     "tool": "data_analysis",
                     "status": "pending"
                 })
@@ -124,14 +162,12 @@ class InvestigationPlanner:
                 })
 
             # -------------------------------------------------
-            # BUSINESS PERFORMANCE / CAUSE INVESTIGATION
+            # BUSINESS PERFORMANCE INVESTIGATION
             # -------------------------------------------------
 
             elif any(
                 phrase in question_lower
                 for phrase in [
-                    "why is",
-                    "why are",
                     "underperforming",
                     "underperformance",
                     "performance gap",
