@@ -16,7 +16,10 @@ from business_reasoning import BusinessReasoning
 from investigation import InvestigationPlanner
 from supabase_client import supabase
 from groq_client import groq_client
-from groq_planner import create_llm_plan
+from groq_planner import (
+    create_llm_plan,
+    validate_llm_plan,
+)
 
 
 app = FastAPI(
@@ -410,6 +413,46 @@ def groq_plan_test(input_data: Dict[str, Any]):
         )
 
         return result
+
+    except Exception as error:
+
+        return {
+            "status": "failed",
+            "error_type": type(error).__name__,
+            "error": str(error)
+        }
+
+@app.post("/groq/plan-validate-test")
+def groq_plan_validate_test(
+    input_data: Dict[str, Any]
+):
+
+    user_request = input_data.get(
+        "request",
+        ""
+    )
+
+    if not user_request:
+        return {
+            "status": "failed",
+            "error": "Request is required."
+        }
+
+    try:
+
+        llm_result = create_llm_plan(
+            user_request
+        )
+
+        validation = validate_llm_plan(
+            llm_result["plan"]
+        )
+
+        return {
+            "status": "success",
+            "llm_plan": llm_result["plan"],
+            "validation": validation
+        }
 
     except Exception as error:
 
