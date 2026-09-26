@@ -168,3 +168,4 @@ class InvestigationPlanner:
             "tasks": tasks,
             "issues": []
         }
+
