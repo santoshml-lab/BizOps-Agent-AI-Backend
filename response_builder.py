@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 
 class ResponseBuilder:
 
-def build(
+ def build(
     self,
     user_request: str,
     plan: Dict[str, Any],
