@@ -570,28 +570,46 @@ class Orchestrator:
                     "product_performance"
                 }:
 
-                    investigation_execution = (
-                        self.executor.execute_task(
-                            {
-                                "task_id": investigation_task.get(
-                                    "task_id"
-                                ),
-                                "description": investigation_task.get(
-                                    "description"
-                                ),
-                                "tool": investigation_tool,
-                                "status": "pending"
-                            },
-                            {
-                                "investigation_question": (
-                                    investigation_task.get(
-                                        "description",
-                                        ""
-                                    )
-                                )
-                            }
-                        )
-                    )
+                    investigation_input = {
+                    "investigation_question": (
+                    investigation_task.get(
+                    "description",
+                    ""
+        )
+    )
+}
+
+                   self.trace.add_event(
+    "INVESTIGATION_INPUT",
+    "Agent prepared input for internal investigation.",
+    {
+        "task_id": investigation_task.get(
+            "task_id"
+        ),
+        "type": investigation_type,
+        "input": investigation_input
+    }
+)
+
+investigation_execution = (
+    self.executor.execute_task(
+        {
+            "task_id": investigation_task.get(
+                "task_id"
+            ),
+            "description": investigation_task.get(
+                "description"
+            ),
+            "tool": investigation_tool,
+            "status": "pending"
+        },
+        investigation_input
+    )
+)
+                        
+                            
+                                
+
 
                     investigation_results.append({
                         "task_id": investigation_task.get(
