@@ -571,45 +571,41 @@ class Orchestrator:
                 }:
 
                     investigation_input = {
-                    "investigation_question": (
-                    investigation_task.get(
-                    "description",
-                    ""
-        )
-    )
-}
+                        "investigation_question": (
+                            investigation_task.get(
+                                "description",
+                                ""
+                            )
+                        )
+                    }
 
-                   self.trace.add_event(
-    "INVESTIGATION_INPUT",
-    "Agent prepared input for internal investigation.",
-    {
-        "task_id": investigation_task.get(
-            "task_id"
-        ),
-        "type": investigation_type,
-        "input": investigation_input
-    }
-)
+                    self.trace.add_event(
+                        "INVESTIGATION_INPUT",
+                        "Agent prepared input for internal investigation.",
+                        {
+                            "task_id": investigation_task.get(
+                                "task_id"
+                            ),
+                            "type": investigation_type,
+                            "input": investigation_input
+                        }
+                    )
 
-investigation_execution = (
-    self.executor.execute_task(
-        {
-            "task_id": investigation_task.get(
-                "task_id"
-            ),
-            "description": investigation_task.get(
-                "description"
-            ),
-            "tool": investigation_tool,
-            "status": "pending"
-        },
-        investigation_input
-    )
-)
-                        
-                            
-                                
-
+                    investigation_execution = (
+                        self.executor.execute_task(
+                            {
+                                "task_id": investigation_task.get(
+                                    "task_id"
+                                ),
+                                "description": investigation_task.get(
+                                    "description"
+                                ),
+                                "tool": investigation_tool,
+                                "status": "pending"
+                            },
+                            investigation_input
+                        )
+                    )
 
                     investigation_results.append({
                         "task_id": investigation_task.get(
@@ -640,6 +636,22 @@ investigation_execution = (
                         "in 2026"
                     )
 
+                    investigation_input = {
+                        "query": investigation_query
+                    }
+
+                    self.trace.add_event(
+                        "INVESTIGATION_INPUT",
+                        "Agent prepared input for external research.",
+                        {
+                            "task_id": investigation_task.get(
+                                "task_id"
+                            ),
+                            "type": investigation_type,
+                            "input": investigation_input
+                        }
+                    )
+
                     investigation_execution = (
                         self.executor.execute_task(
                             {
@@ -652,9 +664,7 @@ investigation_execution = (
                                 "tool": "web_search",
                                 "status": "pending"
                             },
-                            {
-                                "query": investigation_query
-                            }
+                            investigation_input
                         )
                     )
 
