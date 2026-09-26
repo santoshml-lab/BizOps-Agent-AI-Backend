@@ -1,4 +1,5 @@
 from typing import Any, Dict
+import traceback
 
 from registry import get_tool
 
@@ -31,11 +32,13 @@ class Executor:
             }
 
         try:
+
             tool = get_tool(tool_name)
 
             result = tool.execute(input_data)
 
             if result.get("status") == "error":
+
                 return {
                     "task_id": task_id,
                     "tool": tool_name,
@@ -58,6 +61,9 @@ class Executor:
             }
 
         except Exception as error:
+
+            error_details = traceback.format_exc()
+
             return {
                 "task_id": task_id,
                 "tool": tool_name,
@@ -65,6 +71,7 @@ class Executor:
                 "input": input_data,
                 "output": None,
                 "error": str(error),
+                "traceback": error_details,
             }
 
     def execute_plan(
@@ -76,6 +83,7 @@ class Executor:
         results = []
 
         for task in tasks:
+
             task_id = task.get("task_id")
 
             input_data = task_inputs.get(
@@ -92,5 +100,5 @@ class Executor:
 
         return {
             "status": "success",
-            "results": results,
+            "results": results
         }
