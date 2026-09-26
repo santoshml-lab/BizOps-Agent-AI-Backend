@@ -4,14 +4,12 @@ from typing import Any, Dict
 class InputResolver:
 
     def resolve(
-    self,
-    task: Dict[str, Any],
-    user_request: str,
-    task_inputs: Dict[str, Dict[str, Any]],
-    previous_results: list
-) -> Dict[str, Any]:
-
-    
+        self,
+        task: Dict[str, Any],
+        user_request: str,
+        task_inputs: Dict[str, Dict[str, Any]],
+        previous_results: list
+    ) -> Dict[str, Any]:
 
         task_id = task.get("task_id")
         tool_name = task.get("tool")
@@ -41,58 +39,59 @@ class InputResolver:
         # ---------------------------------
 
         if tool_name == "web_search":
-    request_lower = user_request.lower()
 
-    if any(
-        phrase in request_lower
-        for phrase in [
-            "sales dropped",
-            "sales drop",
-            "sales declined",
-            "sales decline",
-            "revenue dropped",
-            "revenue decline",
-            "revenue decreased",
-            "sales slowdown",
-        ]
-    ):
-        search_query = (
-            "external factors that can affect business sales and revenue "
-            "competitor pricing market demand industry trends customer behavior 2026"
-        )
+            request_lower = user_request.lower()
 
-    elif any(
-        phrase in request_lower
-        for phrase in [
-            "competitor",
-            "competition",
-            "market trends",
-            "market trend",
-            "industry trends",
-            "industry trend",
-        ]
-    ):
-        search_query = (
-            "business market trends competitor pricing "
-            "customer demand industry trends 2026"
-        )
+            if any(
+                phrase in request_lower
+                for phrase in [
+                    "sales dropped",
+                    "sales drop",
+                    "sales declined",
+                    "sales decline",
+                    "revenue dropped",
+                    "revenue decline",
+                    "revenue decreased",
+                    "sales slowdown",
+                ]
+            ):
+                search_query = (
+                    "external factors that can affect business sales "
+                    "and revenue competitor pricing market demand "
+                    "industry trends customer behavior 2026"
+                )
 
-    else:
-        search_query = (
-            "business market factors competitor pricing "
-            "customer demand industry trends 2026"
-        )
+            elif any(
+                phrase in request_lower
+                for phrase in [
+                    "competitor",
+                    "competition",
+                    "market trends",
+                    "market trend",
+                    "industry trends",
+                    "industry trend",
+                ]
+            ):
+                search_query = (
+                    "business market trends competitor pricing "
+                    "customer demand industry trends 2026"
+                )
 
-    return {
-        "status": "success",
-        "task_id": task_id,
-        "tool": tool_name,
-        "input": {
-            "query": search_query
-        },
-        "source": "task_specific"
-    }
-                
+            else:
+                search_query = (
+                    "business market factors competitor pricing "
+                    "customer demand industry trends 2026"
+                )
+
+            return {
+                "status": "success",
+                "task_id": task_id,
+                "tool": tool_name,
+                "input": {
+                    "query": search_query
+                },
+                "source": "task_specific"
+            }
 
         # ---------------------------------
         # DATA ANALYSIS
