@@ -82,3 +82,56 @@ Return exactly this JSON structure:
         "plan": plan,
         "raw_response": content
     }
+
+def validate_llm_plan(
+    plan: Dict[str, Any]
+) -> Dict[str, Any]:
+
+    tasks = plan.get("tasks", [])
+
+    if not isinstance(tasks, list):
+        return {
+            "status": "failed",
+            "issues": [
+                "Plan tasks must be a list."
+            ]
+        }
+
+    issues = []
+
+    for task in tasks:
+
+        tool = task.get("tool")
+
+        if tool not in AVAILABLE_TOOLS:
+            issues.append(
+                f"Unknown tool requested: {tool}"
+            )
+
+        if not task.get("task_id"):
+            issues.append(
+                "Task ID is missing."
+            )
+
+        if not task.get("description"):
+            issues.append(
+                "Task description is missing."
+            )
+
+    if issues:
+        return {
+            "status": "failed",
+            "issues": issues
+        }
+
+    return {
+        "status": "validated",
+        "task_count": len(tasks),
+        "tasks": tasks,
+        "issues": []
+    }
+    
+    
+
+
+
