@@ -4,11 +4,14 @@ from typing import Any, Dict
 class InputResolver:
 
     def resolve(
-        self,
-        task: Dict[str, Any],
-        user_request: str,
-        task_inputs: Dict[str, Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    self,
+    task: Dict[str, Any],
+    user_request: str,
+    task_inputs: Dict[str, Dict[str, Any]],
+    previous_results: list
+) -> Dict[str, Any]:
+
+    
 
         task_id = task.get("task_id")
         tool_name = task.get("tool")
