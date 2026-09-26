@@ -210,10 +210,10 @@ class Orchestrator:
             # -------------------------------------------------
 
             resolved_input = self.input_resolver.resolve(
-            task=task,
-            user_request=user_request,
-            task_inputs=task_inputs,
-            previous_results=execution_results
+                task=task,
+                user_request=user_request,
+                task_inputs=task_inputs,
+                previous_results=execution_results
             )
 
             self.trace.add_event(
@@ -864,6 +864,12 @@ class Orchestrator:
                         "recommendations",
                         []
                     )
+                ),
+                "external_source_count": len(
+                    response.get(
+                        "external_sources",
+                        []
+                    )
                 )
             }
         )
@@ -894,6 +900,10 @@ class Orchestrator:
             ),
             "recommendations": response.get(
                 "recommendations",
+                []
+            ),
+            "external_sources": response.get(
+                "external_sources",
                 []
             ),
             "final_response": response.get(
