@@ -210,9 +210,10 @@ class Orchestrator:
             # -------------------------------------------------
 
             resolved_input = self.input_resolver.resolve(
-                task=task,
-                user_request=user_request,
-                task_inputs=task_inputs
+            task=task,
+            user_request=user_request,
+            task_inputs=task_inputs,
+            previous_results=execution_results
             )
 
             self.trace.add_event(
