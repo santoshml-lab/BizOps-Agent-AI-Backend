@@ -171,7 +171,7 @@ def resolve_input(input_data: Dict[str, Any]):
 
 @app.post("/agent/run")
 def run_agent(input_data: Dict[str, Any]):
-    user_request = input_data.get("request")
+    user_request = input_data.get("query") or input_data.get("request")
     task_inputs = input_data.get("task_inputs", {})
 
     session_id = input_data.get(
