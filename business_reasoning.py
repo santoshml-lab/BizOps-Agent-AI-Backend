@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 
 class BusinessReasoning:
 
-def reason(
+ def reason(
     self,
     aggregated_result: Dict[str, Any]
 ) -> Dict[str, Any]:
