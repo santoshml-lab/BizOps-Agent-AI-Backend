@@ -23,14 +23,256 @@ class BusinessReasoning:
                 "Aggregated result is not valid."
             )
 
-        results = aggregated_result.get("results", [])
+        # =================================================
+        # RESULT SOURCE NORMALIZATION
+        #
+        # Normal reasoning:
+        # aggregated_result["results"]
+        #
+        # Re-reasoning:
+        # aggregated_result["original_results"]
+        # aggregated_result["investigation_results"]
+        # =================================================
 
-        if not isinstance(results, list):
-            results = []
+        original_results = aggregated_result.get(
+            "results",
+            []
+        )
+
+        if not isinstance(original_results, list):
+
+            original_results = []
+
+        investigation_results = aggregated_result.get(
+            "investigation_results",
+            []
+        )
+
+        if not isinstance(
+            investigation_results,
+            list
+        ):
+
+            investigation_results = []
+
+        # -------------------------------------------------
+        # If re-reasoning structure is used
+        # -------------------------------------------------
+
+        if isinstance(
+            aggregated_result.get(
+                "original_results"
+            ),
+            dict
+        ):
+
+            original_container = (
+                aggregated_result.get(
+                    "original_results"
+                )
+            )
+
+            original_results = (
+                original_container.get(
+                    "results",
+                    []
+                )
+            )
+
+            if not isinstance(
+                original_results,
+                list
+            ):
+
+                original_results = []
+
+        # =================================================
+        # COMBINED RESULT COLLECTION
+        # =================================================
+
+        all_results: List[Dict[str, Any]] = []
+
+        for result in original_results:
+
+            if isinstance(result, dict):
+
+                all_results.append(
+                    result
+                )
+
+        for result in investigation_results:
+
+            if isinstance(result, dict):
+
+                all_results.append(
+                    result
+                )
+
+        # =================================================
+        # OUTPUT COLLECTION
+        # =================================================
+
+        analysis_outputs: List[Dict[str, Any]] = []
+
+        data_analysis_found = False
+        web_search_found = False
+
+        external_evidence: List[str] = []
+
+        for result in all_results:
+
+            if not isinstance(result, dict):
+                continue
+
+            if result.get("status") != "success":
+                continue
+
+            tool_name = result.get(
+                "tool"
+            )
+
+            output = (
+                result.get("output")
+                or {}
+            )
+
+            # -------------------------------------------------
+            # DATA ANALYSIS
+            # -------------------------------------------------
+
+            if tool_name == "data_analysis":
+
+                data_analysis_found = True
+
+                if isinstance(
+                    output,
+                    dict
+                ):
+
+                    analysis_outputs.append(
+                        output
+                    )
+
+            # -------------------------------------------------
+            # WEB SEARCH
+            # -------------------------------------------------
+
+            elif tool_name == "web_search":
+
+                web_search_found = True
+
+                search_results = []
+
+                if isinstance(
+                    output,
+                    list
+                ):
+
+                    search_results = output
+
+                elif isinstance(
+                    output,
+                    dict
+                ):
+
+                    search_results = (
+                        output.get(
+                            "results"
+                        )
+                        or output.get(
+                            "search_results"
+                        )
+                        or output.get(
+                            "items"
+                        )
+                        or []
+                    )
+
+                if isinstance(
+                    search_results,
+                    list
+                ):
+
+                    for item in search_results:
+
+                        if not isinstance(
+                            item,
+                            dict
+                        ):
+                            continue
+
+                        title = (
+                            item.get(
+                                "title"
+                            )
+                            or item.get(
+                                "name"
+                            )
+                        )
+
+                        snippet = (
+                            item.get(
+                                "snippet"
+                            )
+                            or item.get(
+                                "description"
+                            )
+                            or item.get(
+                                "content"
+                            )
+                            or item.get(
+                                "text"
+                            )
+                        )
+
+                        if title and snippet:
+
+                            external_evidence.append(
+                                f"{title}: {snippet}"
+                            )
+
+                        elif snippet:
+
+                            external_evidence.append(
+                                str(snippet)
+                            )
+
+                if (
+                    not external_evidence
+                    and isinstance(
+                        output,
+                        dict
+                    )
+                ):
+
+                    direct_text = (
+                        output.get(
+                            "content"
+                        )
+                        or output.get(
+                            "answer"
+                        )
+                        or output.get(
+                            "text"
+                        )
+                    )
+
+                    if direct_text:
+
+                        external_evidence.append(
+                            str(direct_text)
+                        )
+
+        # =================================================
+        # BASIC OUTPUT STRUCTURES
+        # =================================================
 
         insights: List[str] = []
+
         recommendations: List[str] = []
+
         evidence_gaps: List[str] = []
+
         issues: List[str] = []
 
         investigation = {
@@ -101,145 +343,40 @@ class BusinessReasoning:
         )
 
         if product_query:
+
             query_intent = "product"
 
         elif region_query:
+
             query_intent = "region"
 
         elif monthly_query:
+
             query_intent = "monthly"
 
         else:
+
             query_intent = "general"
 
         # =================================================
-        # FLAGS
+        # INVESTIGATION FLAGS
         # =================================================
 
-        data_analysis_found = False
-        web_search_found = False
-
         historical_trend_available = False
+
         product_comparison_available = False
 
         region_analysis_available = False
 
         regional_product_investigation_available = False
+
         regional_trend_investigation_available = False
 
         product_why_investigation_available = False
+
         product_historical_investigation_available = False
 
-        # =================================================
-        # WEB EVIDENCE
-        # =================================================
-
-        external_evidence: List[str] = []
-
-        for result in results:
-
-            if not isinstance(result, dict):
-                continue
-
-            if result.get("status") != "success":
-                continue
-
-            if result.get("tool") != "web_search":
-                continue
-
-            web_search_found = True
-
-            output = result.get("output") or {}
-
-            search_results = []
-
-            if isinstance(output, list):
-                search_results = output
-
-            elif isinstance(output, dict):
-                search_results = (
-                    output.get("results")
-                    or output.get("search_results")
-                    or output.get("items")
-                    or []
-                )
-
-            if isinstance(search_results, list):
-
-                for item in search_results:
-
-                    if not isinstance(item, dict):
-                        continue
-
-                    title = (
-                        item.get("title")
-                        or item.get("name")
-                    )
-
-                    snippet = (
-                        item.get("snippet")
-                        or item.get("description")
-                        or item.get("content")
-                        or item.get("text")
-                    )
-
-                    if title and snippet:
-
-                        external_evidence.append(
-                            f"{title}: {snippet}"
-                        )
-
-                    elif snippet:
-
-                        external_evidence.append(
-                            str(snippet)
-                        )
-
-            if (
-                not external_evidence
-                and isinstance(output, dict)
-            ):
-
-                direct_text = (
-                    output.get("content")
-                    or output.get("answer")
-                    or output.get("text")
-                )
-
-                if direct_text:
-
-                    external_evidence.append(
-                        str(direct_text)
-                    )
-
-        # =================================================
-        # FIND DATA ANALYSIS OUTPUTS
-        # =================================================
-
-        analysis_outputs = []
-
-        for result in results:
-
-            if not isinstance(result, dict):
-                continue
-
-            if (
-                result.get("status") == "success"
-                and result.get("tool") == "data_analysis"
-            ):
-
-                data_analysis_found = True
-
-                output = (
-                    result.get("output")
-                    or {}
-                )
-
-                if isinstance(output, dict):
-
-                    analysis_outputs.append(
-                        output
-                    )
+        product_performance_investigations = []
 
         # =================================================
         # DETECT INVESTIGATION EVIDENCE
@@ -258,27 +395,43 @@ class BusinessReasoning:
                 investigation_output,
                 dict
             ):
+
                 continue
 
             investigation_type = (
-                investigation_output.get("type")
+                investigation_output.get(
+                    "type"
+                )
             )
 
-            if investigation_type == "historical_trend":
+            if (
+                investigation_type
+                == "historical_trend"
+            ):
 
                 historical_trend_available = True
 
                 product_historical_investigation_available = True
 
-            elif investigation_type == "product_comparison":
+            elif (
+                investigation_type
+                == "product_comparison"
+            ):
 
                 product_comparison_available = True
 
                 product_why_investigation_available = True
 
-            elif investigation_type == "product_performance":
+            elif (
+                investigation_type
+                == "product_performance"
+            ):
 
                 product_why_investigation_available = True
+
+                product_performance_investigations.append(
+                    investigation_output
+                )
 
             elif (
                 investigation_type
@@ -338,6 +491,7 @@ class BusinessReasoning:
                     )
                     or not product_analysis
                 ):
+
                     continue
 
                 requested_products = []
@@ -348,6 +502,7 @@ class BusinessReasoning:
                         product_name,
                         str
                     ):
+
                         continue
 
                     if (
@@ -359,11 +514,13 @@ class BusinessReasoning:
                             product_name
                         )
 
-                # -----------------------------------------
+                # =================================================
                 # EXPLICIT PRODUCT COMPARISON
-                # -----------------------------------------
+                # =================================================
 
-                if len(requested_products) >= 2:
+                if len(
+                    requested_products
+                ) >= 2:
 
                     first_product = (
                         requested_products[0]
@@ -388,18 +545,36 @@ class BusinessReasoning:
                     )
 
                     if (
-                        isinstance(first, dict)
-                        and isinstance(second, dict)
+                        isinstance(
+                            first,
+                            dict
+                        )
+                        and isinstance(
+                            second,
+                            dict
+                        )
                     ):
 
                         revenue_difference = (
-                            first.get("revenue", 0)
-                            - second.get("revenue", 0)
+                            first.get(
+                                "revenue",
+                                0
+                            )
+                            - second.get(
+                                "revenue",
+                                0
+                            )
                         )
 
                         units_difference = (
-                            first.get("units_sold", 0)
-                            - second.get("units_sold", 0)
+                            first.get(
+                                "units_sold",
+                                0
+                            )
+                            - second.get(
+                                "units_sold",
+                                0
+                            )
                         )
 
                         price_difference = (
@@ -491,9 +666,9 @@ class BusinessReasoning:
 
                         break
 
-                # -----------------------------------------
+                # =================================================
                 # GENERAL PRODUCT QUESTION
-                # -----------------------------------------
+                # =================================================
 
                 else:
 
@@ -505,9 +680,9 @@ class BusinessReasoning:
                         "weakest_product"
                     )
 
-                    # -------------------------------------
-                    # STRONGEST PRODUCT
-                    # -------------------------------------
+                    # -----------------------------------------
+                    # STRONGEST
+                    # -----------------------------------------
 
                     if isinstance(
                         strongest,
@@ -515,8 +690,12 @@ class BusinessReasoning:
                     ):
 
                         strongest_name = (
-                            strongest.get("product")
-                            or strongest.get("name")
+                            strongest.get(
+                                "product"
+                            )
+                            or strongest.get(
+                                "name"
+                            )
                         )
 
                         strongest_revenue = (
@@ -555,9 +734,9 @@ class BusinessReasoning:
                             else 0
                         )
 
-                    # -------------------------------------
-                    # WEAKEST PRODUCT
-                    # -------------------------------------
+                    # -----------------------------------------
+                    # WEAKEST
+                    # -----------------------------------------
 
                     if isinstance(
                         weakest,
@@ -565,8 +744,12 @@ class BusinessReasoning:
                     ):
 
                         weakest_name = (
-                            weakest.get("product")
-                            or weakest.get("name")
+                            weakest.get(
+                                "product"
+                            )
+                            or weakest.get(
+                                "name"
+                            )
                         )
 
                         weakest_revenue = (
@@ -629,6 +812,11 @@ class BusinessReasoning:
                             f"{weakest_name}."
                         )
 
+                        # Generic recommendations are only
+                        # useful before investigation.
+                        # If this is a WHY query, they will
+                        # be replaced after investigation.
+
                         recommendations.extend([
                             "Compare pricing and discount "
                             "strategy across products.",
@@ -643,9 +831,9 @@ class BusinessReasoning:
                             "opportunity."
                         ])
 
-                        # ---------------------------------
-                        # PRODUCT WHY INVESTIGATION
-                        # ---------------------------------
+                        # -----------------------------------------
+                        # WHY / FACTOR INVESTIGATION
+                        # -----------------------------------------
 
                         why_keywords = [
                             "why",
@@ -736,6 +924,7 @@ class BusinessReasoning:
                     )
                     or not region_analysis
                 ):
+
                     continue
 
                 region_analysis_available = True
@@ -780,11 +969,21 @@ class BusinessReasoning:
                     )
                 )
 
-                weakest_name = weakest_region[0]
-                weakest_data = weakest_region[1]
+                weakest_name = (
+                    weakest_region[0]
+                )
 
-                strongest_name = strongest_region[0]
-                strongest_data = strongest_region[1]
+                weakest_data = (
+                    weakest_region[1]
+                )
+
+                strongest_name = (
+                    strongest_region[0]
+                )
+
+                strongest_data = (
+                    strongest_region[1]
+                )
 
                 revenue_gap = (
                     strongest_data.get(
@@ -896,6 +1095,7 @@ class BusinessReasoning:
                     investigation_data,
                     dict
                 ):
+
                     continue
 
                 investigation_type = (
@@ -933,6 +1133,7 @@ class BusinessReasoning:
                         )
                         or not product_analysis
                     ):
+
                         continue
 
                     ranked_products = []
@@ -1081,6 +1282,7 @@ class BusinessReasoning:
                         monthly_analysis,
                         dict
                     ):
+
                         continue
 
                     if monthly_analysis:
@@ -1290,6 +1492,7 @@ class BusinessReasoning:
                             investigation_data,
                             dict
                         ):
+
                             continue
 
                         if (
@@ -1299,6 +1502,7 @@ class BusinessReasoning:
                             !=
                             "regional_historical_trend"
                         ):
+
                             continue
 
                         monthly_change = (
@@ -1312,6 +1516,7 @@ class BusinessReasoning:
                             monthly_change,
                             dict
                         ):
+
                             continue
 
                         for (
@@ -1399,6 +1604,7 @@ class BusinessReasoning:
                     )
                     or not monthly_change
                 ):
+
                     continue
 
                 sorted_months = sorted(
@@ -1420,10 +1626,13 @@ class BusinessReasoning:
                     latest,
                     dict
                 ):
+
                     continue
 
                 direction = (
-                    latest.get("direction")
+                    latest.get(
+                        "direction"
+                    )
                 )
 
                 change = (
@@ -1545,11 +1754,8 @@ class BusinessReasoning:
                     product_analysis,
                     dict
                 ):
-                    product_analysis = {}
 
-                # -----------------------------------------
-                # STRONGEST
-                # -----------------------------------------
+                    product_analysis = {}
 
                 if isinstance(
                     strongest,
@@ -1596,10 +1802,6 @@ class BusinessReasoning:
                         )
                         else 0
                     )
-
-                # -----------------------------------------
-                # WEAKEST
-                # -----------------------------------------
 
                 if isinstance(
                     weakest,
@@ -1670,6 +1872,327 @@ class BusinessReasoning:
         # PRODUCT INVESTIGATION EVIDENCE
         # =================================================
 
+        if (
+            query_intent == "product"
+            and product_performance_investigations
+        ):
+
+            # -------------------------------------------------
+            # WHY QUERY:
+            # Remove generic recommendations because
+            # investigation now gives stronger evidence.
+            # -------------------------------------------------
+
+            why_keywords = [
+                "why",
+                "how",
+                "factor",
+                "factors",
+                "reason",
+                "reasons",
+                "driver",
+                "drivers",
+                "outperform",
+                "outperforms"
+            ]
+
+            is_why_query = any(
+                keyword in request
+                for keyword in why_keywords
+            )
+
+            if is_why_query:
+
+                recommendations = []
+
+            # -------------------------------------------------
+            # CONSUME PRODUCT PERFORMANCE INVESTIGATION
+            # -------------------------------------------------
+
+            for investigation_data in (
+                product_performance_investigations
+            ):
+
+                target_product = (
+                    investigation_data.get(
+                        "target_product"
+                    )
+                )
+
+                target_data = (
+                    investigation_data.get(
+                        "target_product_data",
+                        {}
+                    )
+                )
+
+                comparison = (
+                    investigation_data.get(
+                        "comparison",
+                        {}
+                    )
+                )
+
+                differences = (
+                    investigation_data.get(
+                        "differences",
+                        {}
+                    )
+                )
+
+                if (
+                    not target_product
+                    or not isinstance(
+                        target_data,
+                        dict
+                    )
+                ):
+
+                    continue
+
+                target_units = (
+                    target_data.get(
+                        "units_sold",
+                        0
+                    )
+                )
+
+                target_price = (
+                    target_data.get(
+                        "average_unit_price",
+                        0
+                    )
+                )
+
+                target_discount = (
+                    target_data.get(
+                        "average_discount",
+                        0
+                    )
+                )
+
+                target_revenue = (
+                    target_data.get(
+                        "revenue",
+                        0
+                    )
+                )
+
+                target_orders = (
+                    target_data.get(
+                        "orders",
+                        0
+                    )
+                )
+
+                # -------------------------------------------------
+                # CORE INVESTIGATION INSIGHT
+                # -------------------------------------------------
+
+                insights.append(
+                    f"Investigation found that "
+                    f"{target_product} generated "
+                    f"{target_revenue:,.2f} in recorded "
+                    f"revenue across {target_orders} orders "
+                    f"and sold {target_units} units."
+                )
+
+                insights.append(
+                    f"{target_product} had an average unit "
+                    f"price of {target_price:,.2f} and an "
+                    f"average discount of "
+                    f"{target_discount:.2f}%."
+                )
+
+                # -------------------------------------------------
+                # COMPARISON EVIDENCE
+                # -------------------------------------------------
+
+                if isinstance(
+                    comparison,
+                    dict
+                ):
+
+                    for (
+                        comparison_product,
+                        comparison_data
+                    ) in comparison.items():
+
+                        if (
+                            comparison_product
+                            == target_product
+                        ):
+
+                            continue
+
+                        if not isinstance(
+                            comparison_data,
+                            dict
+                        ):
+
+                            continue
+
+                        comparison_units = (
+                            comparison_data.get(
+                                "units_sold",
+                                0
+                            )
+                        )
+
+                        comparison_price = (
+                            comparison_data.get(
+                                "average_unit_price",
+                                0
+                            )
+                        )
+
+                        comparison_discount = (
+                            comparison_data.get(
+                                "average_discount",
+                                0
+                            )
+                        )
+
+                        unit_difference = (
+                            target_units
+                            - comparison_units
+                        )
+
+                        price_difference = (
+                            target_price
+                            - comparison_price
+                        )
+
+                        discount_difference = (
+                            target_discount
+                            - comparison_discount
+                        )
+
+                        insights.append(
+                            f"Compared with "
+                            f"{comparison_product}, "
+                            f"{target_product} sold "
+                            f"{unit_difference} more units, "
+                            f"had an average unit price "
+                            f"difference of "
+                            f"{price_difference:,.2f}, "
+                            f"and an average discount "
+                            f"difference of "
+                            f"{discount_difference:.2f} "
+                            f"percentage points."
+                        )
+
+                # -------------------------------------------------
+                # DIFFERENCE DATA
+                # -------------------------------------------------
+
+                if isinstance(
+                    differences,
+                    dict
+                ):
+
+                    for (
+                        comparison_product,
+                        difference_data
+                    ) in differences.items():
+
+                        if not isinstance(
+                            difference_data,
+                            dict
+                        ):
+
+                            continue
+
+                        revenue_difference = (
+                            difference_data.get(
+                                "revenue_difference",
+                                0
+                            )
+                        )
+
+                        units_difference = (
+                            difference_data.get(
+                                "units_sold_difference",
+                                0
+                            )
+                        )
+
+                        price_difference = (
+                            difference_data.get(
+                                "average_unit_price_difference",
+                                0
+                            )
+                        )
+
+                        discount_difference = (
+                            difference_data.get(
+                                "average_discount_difference",
+                                0
+                            )
+                        )
+
+                        insights.append(
+                            f"Against {comparison_product}, "
+                            f"{target_product} had a "
+                            f"{revenue_difference:,.2f} "
+                            f"revenue advantage, "
+                            f"{units_difference} more units "
+                            f"sold, a "
+                            f"{price_difference:,.2f} average "
+                            f"price difference, and a "
+                            f"{discount_difference:.2f} "
+                            f"percentage-point discount "
+                            f"difference."
+                        )
+
+                # -------------------------------------------------
+                # BUSINESS CONCERN
+                # -------------------------------------------------
+
+                business_concern = (
+                    f"{target_product}'s higher recorded "
+                    f"revenue is associated with differences "
+                    f"in unit volume, pricing, and discounts. "
+                    f"The available evidence shows these "
+                    f"factors occurring alongside the revenue "
+                    f"difference, but it does not establish "
+                    f"that any single factor caused the "
+                    f"higher revenue."
+                )
+
+                # -------------------------------------------------
+                # INVESTIGATION-BASED RECOMMENDATIONS
+                # -------------------------------------------------
+
+                recommendations.extend([
+
+                    f"Prioritize analysis of "
+                    f"{target_product}'s volume drivers "
+                    f"because its {target_units} recorded "
+                    f"units are a major observed "
+                    f"differentiator.",
+
+                    f"Compare {target_product}'s pricing "
+                    f"and discount structure with the "
+                    f"other products to determine whether "
+                    f"the observed combination is "
+                    f"sustainable.",
+
+                    f"Break down {target_product}'s monthly "
+                    f"and regional performance before "
+                    f"attributing its revenue advantage "
+                    f"to any single factor."
+                ])
+
+                # Only one target-product investigation
+                # is needed for this reasoning pass.
+
+                break
+
+        # =================================================
+        # PRODUCT COMPARISON INVESTIGATION
+        # =================================================
+
         if query_intent == "product":
 
             for output in analysis_outputs:
@@ -1685,6 +2208,7 @@ class BusinessReasoning:
                     investigation_data,
                     dict
                 ):
+
                     continue
 
                 investigation_type = (
@@ -1693,109 +2217,7 @@ class BusinessReasoning:
                     )
                 )
 
-                # -----------------------------------------
-                # PRODUCT PERFORMANCE
-                # -----------------------------------------
-
                 if (
-                    investigation_type
-                    == "product_performance"
-                ):
-
-                    target_product = (
-                        investigation_data.get(
-                            "target_product"
-                        )
-                    )
-
-                    target_data = (
-                        investigation_data.get(
-                            "target_product_data",
-                            {}
-                        )
-                    )
-
-                    differences = (
-                        investigation_data.get(
-                            "differences",
-                            {}
-                        )
-                    )
-
-                    if (
-                        target_product
-                        and isinstance(
-                            target_data,
-                            dict
-                        )
-                    ):
-
-                        insights.append(
-                            f"{target_product} recorded "
-                            f"{target_data.get('revenue', 0):,.2f} "
-                            f"in revenue across "
-                            f"{target_data.get('orders', 0)} "
-                            f"orders and "
-                            f"{target_data.get('units_sold', 0)} "
-                            f"units."
-                        )
-
-                        insights.append(
-                            f"{target_product}'s average "
-                            f"unit price was "
-                            f"{target_data.get('average_unit_price', 0):,.2f} "
-                            f"with an average discount of "
-                            f"{target_data.get('average_discount', 0):.2f}%."
-                        )
-
-                        if isinstance(
-                            differences,
-                            dict
-                        ):
-
-                            for (
-                                comparison_product,
-                                difference_data
-                            ) in differences.items():
-
-                                if not isinstance(
-                                    difference_data,
-                                    dict
-                                ):
-                                    continue
-
-                                insights.append(
-                                    f"Compared with "
-                                    f"{comparison_product}, "
-                                    f"{target_product} had a "
-                                    f"{difference_data.get('revenue_difference', 0):,.2f} "
-                                    f"revenue difference, "
-                                    f"{difference_data.get('units_sold_difference', 0)} "
-                                    f"unit difference, a "
-                                    f"{difference_data.get('average_unit_price_difference', 0):,.2f} "
-                                    f"average price difference, "
-                                    f"and a "
-                                    f"{difference_data.get('average_discount_difference', 0):.2f} "
-                                    f"percentage-point "
-                                    f"discount difference."
-                                )
-
-                        business_concern = (
-                            f"{target_product}'s higher "
-                            f"recorded revenue is associated "
-                            f"with differences in unit volume, "
-                            f"pricing, and discounts. These "
-                            f"observed factors should be "
-                            f"validated against monthly and "
-                            f"regional evidence before "
-                            f"attributing causality."
-                        )
-
-                # -----------------------------------------
-                # PRODUCT COMPARISON
-                # -----------------------------------------
-
-                elif (
                     investigation_type
                     == "product_comparison"
                 ):
@@ -1856,9 +2278,9 @@ class BusinessReasoning:
                             f"discounts, and regional demand."
                         )
 
-                # -----------------------------------------
+                # -------------------------------------------------
                 # HISTORICAL TREND
-                # -----------------------------------------
+                # -------------------------------------------------
 
                 elif (
                     investigation_type
@@ -2041,6 +2463,7 @@ class BusinessReasoning:
                         monthly_change,
                         dict
                     ):
+
                         continue
 
                     for change_data in (
@@ -2114,7 +2537,9 @@ class BusinessReasoning:
             if not recommendation:
                 continue
 
-            if recommendation not in unique_recommendations:
+            if recommendation not in (
+                unique_recommendations
+            ):
 
                 unique_recommendations.append(
                     recommendation
@@ -2131,15 +2556,23 @@ class BusinessReasoning:
         )
 
         if not isinstance(
-            investigation.get("questions"),
+            investigation.get(
+                "questions"
+            ),
             list
         ):
 
-            investigation["questions"] = []
+            investigation[
+                "questions"
+            ] = []
 
-        investigation["questions"] = list(
+        investigation[
+            "questions"
+        ] = list(
             dict.fromkeys(
-                investigation["questions"]
+                investigation[
+                    "questions"
+                ]
             )
         )
 
@@ -2180,4 +2613,4 @@ class BusinessReasoning:
             "issues": [
                 message
             ]
-                            }
+                        }
