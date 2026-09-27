@@ -1834,4 +1834,4 @@ class BusinessReasoning:
                     "questions"
                 ]
                 if "Product A" not in question
-                and "Product C
+                and "Product C"
