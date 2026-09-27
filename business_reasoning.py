@@ -2125,5 +2125,5 @@ class BusinessReasoning:
                 "analysis_output_count": 0,
                 "investigation_result_count": 0,
             },
-            }
+                }
                         
