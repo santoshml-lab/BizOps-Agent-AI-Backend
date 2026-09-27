@@ -94,6 +94,9 @@ class BusinessReasoning:
 
         external_evidence: List[str] = []
 
+        # Used to prevent duplicate external sources
+        external_source_keys = set()
+
         for result in all_results:
 
             if not isinstance(result, dict):
@@ -153,6 +156,7 @@ class BusinessReasoning:
                         title = (
                             item.get("title")
                             or item.get("name")
+                            or ""
                         )
 
                         snippet = (
@@ -160,7 +164,47 @@ class BusinessReasoning:
                             or item.get("description")
                             or item.get("content")
                             or item.get("text")
+                            or ""
                         )
+
+                        url = (
+                            item.get("url")
+                            or item.get("link")
+                            or item.get("source")
+                            or ""
+                        )
+
+                        # -----------------------------------------
+                        # UNIQUE SOURCE KEY
+                        # -----------------------------------------
+
+                        source_key = (
+                            str(url).strip().lower()
+                            or str(title).strip().lower()
+                        )
+
+                        if not source_key:
+
+                            source_key = (
+                                str(title)
+                                .strip()
+                                .lower()
+                                + "|"
+                                + str(snippet)
+                                .strip()
+                                .lower()[:200]
+                            )
+
+                        if source_key in external_source_keys:
+                            continue
+
+                        external_source_keys.add(
+                            source_key
+                        )
+
+                        # -----------------------------------------
+                        # STORE SOURCE
+                        # -----------------------------------------
 
                         if title and snippet:
 
@@ -174,10 +218,11 @@ class BusinessReasoning:
                                 str(snippet)
                             )
 
-                if (
-                    not external_evidence
-                    and isinstance(output, dict)
-                ):
+                # ---------------------------------------------
+                # DIRECT TEXT OUTPUT
+                # ---------------------------------------------
+
+                if isinstance(output, dict):
 
                     direct_text = (
                         output.get("content")
@@ -187,9 +232,21 @@ class BusinessReasoning:
 
                     if direct_text:
 
-                        external_evidence.append(
+                        direct_key = (
                             str(direct_text)
+                            .strip()
+                            .lower()
                         )
+
+                        if direct_key not in external_source_keys:
+
+                            external_source_keys.add(
+                                direct_key
+                            )
+
+                            external_evidence.append(
+                                str(direct_text)
+                            )
 
         # =================================================
         # BASIC OUTPUT STRUCTURES
@@ -534,7 +591,9 @@ class BusinessReasoning:
                         "weakest_product"
                     )
 
+                    # -------------------------------------------------
                     # STRONGEST
+                    # -------------------------------------------------
 
                     if isinstance(
                         strongest,
@@ -579,7 +638,9 @@ class BusinessReasoning:
                             else 0
                         )
 
+                    # -------------------------------------------------
                     # WEAKEST
+                    # -------------------------------------------------
 
                     if isinstance(
                         weakest,
@@ -880,6 +941,10 @@ class BusinessReasoning:
                     )
                 )
 
+                # ---------------------------------------------
+                # PRODUCT CONTRIBUTION
+                # ---------------------------------------------
+
                 if (
                     investigation_type
                     == "regional_product_contribution"
@@ -1005,6 +1070,10 @@ class BusinessReasoning:
                         f"contributor."
                     )
 
+                # ---------------------------------------------
+                # HISTORICAL REGIONAL TREND
+                # ---------------------------------------------
+
                 elif (
                     investigation_type
                     == "regional_historical_trend"
@@ -1091,7 +1160,7 @@ class BusinessReasoning:
                             f"available observations."
                         )
 
-                    decrease_months = []
+                    decrease_months = {}
 
                     if isinstance(
                         monthly_change,
@@ -1113,13 +1182,10 @@ class BusinessReasoning:
                                 ) == "decrease"
                             ):
 
-                                decrease_months.append(
-                                    (
-                                        month,
-                                        change_data.get(
-                                            "change_percentage",
-                                            0
-                                        )
+                                decrease_months[month] = (
+                                    change_data.get(
+                                        "change_percentage",
+                                        0
                                     )
                                 )
 
@@ -1131,7 +1197,9 @@ class BusinessReasoning:
                             for (
                                 month,
                                 change
-                            ) in decrease_months
+                            ) in sorted(
+                                decrease_months.items()
+                            )
                         )
 
                         insights.append(
@@ -1253,22 +1321,34 @@ class BusinessReasoning:
 
                 for monthly_change in monthly_outputs:
 
-                    combined_monthly_change.update(
-                        monthly_change
-                    )
+                    for (
+                        month,
+                        change_data
+                    ) in monthly_change.items():
+
+                        # First valid occurrence wins.
+                        # This prevents duplicate outputs
+                        # from creating duplicate reasoning.
+                        if month not in combined_monthly_change:
+
+                            combined_monthly_change[
+                                month
+                            ] = change_data
 
                 sorted_months = sorted(
                     combined_monthly_change.keys()
                 )
 
-                latest_month = sorted_months[-1]
+                if sorted_months:
 
-                latest = (
-                    combined_monthly_change.get(
-                        latest_month,
-                        {}
+                    latest_month = sorted_months[-1]
+
+                    latest = (
+                        combined_monthly_change.get(
+                            latest_month,
+                            {}
+                        )
                     )
-                )
 
             # -------------------------------------------------
             # LATEST MONTH EVIDENCE
@@ -1346,9 +1426,8 @@ class BusinessReasoning:
             # HISTORICAL MONTHLY EVIDENCE
             # -------------------------------------------------
 
-            historical_declines = []
-
-            historical_increases = []
+            historical_declines = {}
+            historical_increases = {}
 
             if monthly_outputs:
 
@@ -1379,24 +1458,18 @@ class BusinessReasoning:
                             and month != latest_month
                         ):
 
-                            historical_declines.append(
-                                (
-                                    month,
-                                    percentage
-                                )
-                            )
+                            historical_declines[
+                                month
+                            ] = percentage
 
                         elif (
                             direction == "increase"
                             and month != latest_month
                         ):
 
-                            historical_increases.append(
-                                (
-                                    month,
-                                    percentage
-                                )
-                            )
+                            historical_increases[
+                                month
+                            ] = percentage
 
             if historical_declines:
 
@@ -1406,7 +1479,9 @@ class BusinessReasoning:
                     for (
                         month,
                         change
-                    ) in historical_declines
+                    ) in sorted(
+                        historical_declines.items()
+                    )
                 )
 
                 insights.append(
@@ -1416,6 +1491,29 @@ class BusinessReasoning:
                     f"occurred before the latest observed "
                     f"month and should be analyzed "
                     f"separately from the latest movement."
+                )
+
+            # -------------------------------------------------
+            # HISTORICAL INCREASES
+            # -------------------------------------------------
+
+            if historical_increases:
+
+                increase_text = ", ".join(
+                    f"{month} "
+                    f"({abs(change):.2f}% increase)"
+                    for (
+                        month,
+                        change
+                    ) in sorted(
+                        historical_increases.items()
+                    )
+                )
+
+                insights.append(
+                    f"Historical month-over-month "
+                    f"increases were observed in "
+                    f"{increase_text}."
                 )
 
             # -------------------------------------------------
@@ -1527,20 +1625,31 @@ class BusinessReasoning:
                 )
 
                 insights.append(
-                    f"External research added "
-                    f"{external_count} market-context "
+                    f"External research contributed "
+                    f"{external_count} unique market-context "
                     f"source(s) covering factors such as "
                     f"pricing pressure, customer behavior, "
                     f"competition, and broader market "
                     f"conditions."
                 )
 
+                if investigation_results:
+
+                    insights.append(
+                        "The investigation stage validated "
+                        "the external research and incorporated "
+                        "the available market context into the "
+                        "reasoning. The evidence remains "
+                        "contextual and does not establish "
+                        "company-specific causation."
+                    )
+
                 insights.append(
-                    "These external factors are plausible "
-                    "contextual drivers, but the available "
-                    "evidence does not establish that they "
-                    "caused the company's observed revenue "
-                    "changes."
+                    "External market factors may help explain "
+                    "historical revenue movements, but the "
+                    "available evidence does not establish "
+                    "that these factors caused the observed "
+                    "changes in this business."
                 )
 
                 investigation["required"] = True
@@ -1624,6 +1733,10 @@ class BusinessReasoning:
 
                     product_analysis = {}
 
+                # -------------------------------------------------
+                # STRONGEST
+                # -------------------------------------------------
+
                 if isinstance(
                     strongest,
                     dict
@@ -1660,6 +1773,10 @@ class BusinessReasoning:
                         )
                         else 0
                     )
+
+                # -------------------------------------------------
+                # WEAKEST
+                # -------------------------------------------------
 
                 if isinstance(
                     weakest,
@@ -2016,6 +2133,10 @@ class BusinessReasoning:
                     )
                 )
 
+                # -------------------------------------------------
+                # PRODUCT COMPARISON
+                # -------------------------------------------------
+
                 if (
                     investigation_type
                     == "product_comparison"
@@ -2072,6 +2193,10 @@ class BusinessReasoning:
                             f"through volume, pricing, "
                             f"discounts, and regional demand."
                         )
+
+                # -------------------------------------------------
+                # PRODUCT HISTORICAL TREND
+                # -------------------------------------------------
 
                 elif (
                     investigation_type
@@ -2167,7 +2292,7 @@ class BusinessReasoning:
                         dict
                     ):
 
-                        decreases = []
+                        decreases = {}
 
                         for (
                             month,
@@ -2184,13 +2309,10 @@ class BusinessReasoning:
                                 ) == "decrease"
                             ):
 
-                                decreases.append(
-                                    (
-                                        month,
-                                        change_data.get(
-                                            "change_percentage",
-                                            0
-                                        )
+                                decreases[month] = (
+                                    change_data.get(
+                                        "change_percentage",
+                                        0
                                     )
                                 )
 
@@ -2202,7 +2324,9 @@ class BusinessReasoning:
                                 for (
                                     month,
                                     change
-                                ) in decreases
+                                ) in sorted(
+                                    decreases.items()
+                                )
                             )
 
                             insights.append(
@@ -2266,43 +2390,83 @@ class BusinessReasoning:
 
         unique_insights = []
 
+        seen_insight_keys = set()
+
         for insight in insights:
 
             if not insight:
                 continue
 
-            if insight not in unique_insights:
-
-                unique_insights.append(
-                    insight
+            normalized = (
+                " ".join(
+                    str(insight)
+                    .lower()
+                    .split()
                 )
+            )
+
+            if normalized in seen_insight_keys:
+                continue
+
+            seen_insight_keys.add(
+                normalized
+            )
+
+            unique_insights.append(
+                insight
+            )
 
         insights = unique_insights
 
+        # -------------------------------------------------
+        # UNIQUE RECOMMENDATIONS
+        # -------------------------------------------------
+
         unique_recommendations = []
+
+        seen_recommendation_keys = set()
 
         for recommendation in recommendations:
 
             if not recommendation:
                 continue
 
-            if recommendation not in (
-                unique_recommendations
-            ):
-
-                unique_recommendations.append(
-                    recommendation
+            normalized = (
+                " ".join(
+                    str(recommendation)
+                    .lower()
+                    .split()
                 )
+            )
+
+            if normalized in seen_recommendation_keys:
+                continue
+
+            seen_recommendation_keys.add(
+                normalized
+            )
+
+            unique_recommendations.append(
+                recommendation
+            )
 
         recommendations = (
             unique_recommendations[:3]
         )
+
+        # -------------------------------------------------
+        # UNIQUE EVIDENCE GAPS
+        # -------------------------------------------------
 
         evidence_gaps = list(
             dict.fromkeys(
                 evidence_gaps
             )
         )
+
+        # -------------------------------------------------
+        # UNIQUE INVESTIGATION QUESTIONS
+        # -------------------------------------------------
 
         if not isinstance(
             investigation.get("questions"),
@@ -2354,4 +2518,4 @@ class BusinessReasoning:
             "issues": [
                 message
             ]
-                    }
+        }
