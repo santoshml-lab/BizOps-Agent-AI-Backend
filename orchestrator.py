@@ -549,16 +549,12 @@ class Orchestrator:
                 []
             ):
 
-                investigation_type = (
-                    investigation_task.get(
-                        "type"
-                    )
+                investigation_type = investigation_task.get(
+                    "type"
                 )
 
-                investigation_tool = (
-                    investigation_task.get(
-                        "tool"
-                    )
+                investigation_tool = investigation_task.get(
+                    "tool"
                 )
 
                 # ---------------------------------------------
@@ -569,9 +565,7 @@ class Orchestrator:
                     "data_request",
                     "product_performance",
                     "historical_trend"
-}:
-                    
-                    
+                }:
 
                     investigation_input = {
                         "investigation_question": (
@@ -826,64 +820,106 @@ class Orchestrator:
                 "results": combined_results
             }
 
-           re_reasoning_result = (
-     self.business_reasoning.reason(
-        re_reasoning_input,
-        user_request
-    )
-)
+            re_reasoning_result = (
+                self.business_reasoning.reason(
+                    re_reasoning_input,
+                    user_request
+                )
+            )
 
-# -------------------------------------------------
-# PRESERVE INVESTIGATION COMPLETION STATE
-# -------------------------------------------------
+            # -------------------------------------------------
+            # PRESERVE INVESTIGATION COMPLETION STATE
+            # -------------------------------------------------
 
-all_investigations_passed = (
-    len(investigation_results) > 0
-    and all(
-        result.get("status") == "success"
-        for result in investigation_results
-    )
-)
+            all_investigations_passed = (
+                len(investigation_results) > 0
+                and all(
+                    result.get("status") == "success"
+                    for result in investigation_results
+                )
+            )
 
-if all_investigations_passed:
+            if all_investigations_passed:
 
-    previous_investigation = reasoning_result.get(
-        "investigation",
-        {}
-    )
+                previous_investigation = reasoning_result.get(
+                    "investigation",
+                    {}
+                )
 
-    re_reasoning_result["investigation"] = {
-        "required": False,
-        "completed": True,
-        "pending": False,
-        "questions": previous_investigation.get(
-            "questions",
-            []
-        ),
-        "primary_external_source_count": previous_investigation.get(
-            "primary_external_source_count",
-            0
-        ),
-        "investigation_external_source_count": previous_investigation.get(
-            "investigation_external_source_count",
-            0
-        ),
-        "investigation_sources_available": previous_investigation.get(
-            "investigation_sources_available",
-            False
-        ),
-        "business_evidence_available": True,
-        "completed_investigation_types": previous_investigation.get(
-            "completed_investigation_types",
-            []
-        )
-    }
+                re_reasoning_result["investigation"] = {
+                    "required": False,
+                    "completed": True,
+                    "pending": False,
+                    "questions": previous_investigation.get(
+                        "questions",
+                        []
+                    ),
+                    "primary_external_source_count": (
+                        previous_investigation.get(
+                            "primary_external_source_count",
+                            0
+                        )
+                    ),
+                    "investigation_external_source_count": (
+                        previous_investigation.get(
+                            "investigation_external_source_count",
+                            0
+                        )
+                    ),
+                    "investigation_sources_available": (
+                        previous_investigation.get(
+                            "investigation_sources_available",
+                            False
+                        )
+                    ),
+                    "business_evidence_available": True,
+                    "completed_investigation_types": (
+                        previous_investigation.get(
+                            "completed_investigation_types",
+                            []
+                        )
+                    )
+                }
 
-self.trace.add_event(
-    "RE_REASONING",  
-                
-            
-                            
+            self.trace.add_event(
+                "RE_REASONING",
+                "Agent re-evaluated the business situation using original analysis and validated investigation evidence.",
+                {
+                    "status": re_reasoning_result.get(
+                        "status"
+                    ),
+                    "insight_count": len(
+                        re_reasoning_result.get(
+                            "insights",
+                            []
+                        )
+                    ),
+                    "recommendation_count": len(
+                        re_reasoning_result.get(
+                            "recommendations",
+                            []
+                        )
+                    ),
+                    "investigation_completed": (
+                        re_reasoning_result.get(
+                            "investigation",
+                            {}
+                        ).get(
+                            "completed",
+                            False
+                        )
+                    )
+                }
+            )
+
+            if re_reasoning_result.get(
+                "status"
+            ) in {
+                "success",
+                "partial"
+            }:
+
+                reasoning_result = re_reasoning_result
 
         # -------------------------------------------------
         # RESPONSE BUILDING
