@@ -2515,5 +2515,5 @@ class BusinessReasoning:
                 "investigation_result_count": 0,
                 "investigation_evidence_count": 0,
             },
-    }ĺ
+        }
                         
