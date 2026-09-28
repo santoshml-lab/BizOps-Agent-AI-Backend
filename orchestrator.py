@@ -567,8 +567,11 @@ class Orchestrator:
 
                 if investigation_type in {
                     "data_request",
-                    "product_performance"
-                }:
+                    "product_performance",
+                    "historical_trend"
+}:
+                    
+                    
 
                     investigation_input = {
                         "investigation_question": (
