@@ -478,51 +478,67 @@ class BusinessReasoning:
                     investigation_type
                 )
 
-        # Investigation is completed when validated
-        # business-specific evidence exists OR all
-        # investigation results completed successfully.
+        # =====================================================
+        # INVESTIGATION COMPLETION
+        # =====================================================
 
-       successful_investigation_results = []
+        successful_investigation_results = []
 
-       for result in investigation_results:
+        for result in investigation_results:
 
-          if not isinstance(result, dict):
-            continue
+            if not isinstance(result, dict):
+                continue
 
-       result_status = str(
-          result.get("status", "")
-    ).lower().strip()
+            result_status = str(
+                result.get(
+                    "status",
+                    ""
+                )
+            ).lower().strip()
 
-       output = result.get(
-        "output",
-        {}
-    )
+            output = result.get(
+                "output",
+                {}
+            )
 
-    output_status = ""
+            output_status = ""
 
-    if isinstance(output, dict):
-        output_status = str(
-            output.get("status", "")
-        ).lower().strip()
+            if isinstance(output, dict):
 
-    if (
-        result_status in {"success", "passed"}
-        or output_status in {"success", "passed"}
-    ):
-        successful_investigation_results.append(
-            result
+                output_status = str(
+                    output.get(
+                        "status",
+                        ""
+                    )
+                ).lower().strip()
+
+            if (
+                result_status in {
+                    "success",
+                    "passed"
+                }
+                or output_status in {
+                    "success",
+                    "passed"
+                }
+            ):
+
+                successful_investigation_results.append(
+                    result
+                )
+
+        investigation_completed = bool(
+            valid_investigation_evidence
+            or (
+                investigation_results
+                and len(
+                    successful_investigation_results
+                )
+                == len(
+                    investigation_results
+                )
+            )
         )
-
-investigation_completed = bool(
-    valid_investigation_evidence
-    or (
-        investigation_results
-        and len(successful_investigation_results)
-        == len(investigation_results)
-    )
-)
-            
-        
 
         # =====================================================
         # EVIDENCE GAPS
@@ -541,6 +557,7 @@ investigation_completed = bool(
             and web_search_found
             and not investigation_completed
         ):
+
             evidence_gaps.append(
                 "External evidence exists, but business-specific "
                 "investigation evidence is not yet available."
@@ -1093,7 +1110,6 @@ investigation_completed = bool(
                             0
                         )
                     )
-                )
 
                 weakest_discount = (
                     self._safe_number(
@@ -1385,6 +1401,7 @@ investigation_completed = bool(
             )
 
             if not target_product:
+
                 analysis_scope = investigation.get(
                     "analysis_scope",
                     {}
@@ -1394,6 +1411,7 @@ investigation_completed = bool(
                     analysis_scope,
                     dict
                 ):
+
                     target_product = (
                         analysis_scope.get(
                             "product"
@@ -1474,6 +1492,7 @@ investigation_completed = bool(
                             <
                             product_monthly[index - 1][1]
                         ):
+
                             increasing = False
                             break
 
@@ -2458,11 +2477,15 @@ investigation_completed = bool(
 
         return {
             "status": "failed",
+
             "insights": [],
+
             "recommendations": [],
+
             "evidence_gaps": [
                 str(message)
             ],
+
             "investigation": {
                 "required": False,
                 "completed": False,
@@ -2474,10 +2497,15 @@ investigation_completed = bool(
                 "business_evidence_available": False,
                 "completed_investigation_types": [],
             },
+
             "external_sources": [],
+
             "external_evidence": [],
+
             "primary_external_evidence": [],
+
             "investigation_external_evidence": [],
+
             "reasoning_metadata": {
                 "primary_external_source_count": 0,
                 "external_source_count": 0,
@@ -2487,5 +2515,5 @@ investigation_completed = bool(
                 "investigation_result_count": 0,
                 "investigation_evidence_count": 0,
             },
-                }
+    }ĺ
                         
