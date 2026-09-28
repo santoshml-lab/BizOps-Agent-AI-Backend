@@ -478,9 +478,51 @@ class BusinessReasoning:
                     investigation_type
                 )
 
-        investigation_completed = (
-            valid_investigation_evidence
+        # Investigation is completed when validated
+        # business-specific evidence exists OR all
+        # investigation results completed successfully.
+
+       successful_investigation_results = []
+
+       for result in investigation_results:
+
+          if not isinstance(result, dict):
+            continue
+
+       result_status = str(
+          result.get("status", "")
+    ).lower().strip()
+
+       output = result.get(
+        "output",
+        {}
+    )
+
+    output_status = ""
+
+    if isinstance(output, dict):
+        output_status = str(
+            output.get("status", "")
+        ).lower().strip()
+
+    if (
+        result_status in {"success", "passed"}
+        or output_status in {"success", "passed"}
+    ):
+        successful_investigation_results.append(
+            result
         )
+
+investigation_completed = bool(
+    valid_investigation_evidence
+    or (
+        investigation_results
+        and len(successful_investigation_results)
+        == len(investigation_results)
+    )
+)
+            
+        
 
         # =====================================================
         # EVIDENCE GAPS
