@@ -1110,6 +1110,7 @@ class BusinessReasoning:
                             0
                         )
                     )
+                )
 
                 weakest_discount = (
                     self._safe_number(
