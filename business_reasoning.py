@@ -494,11 +494,6 @@ class BusinessReasoning:
                 "No successful business data analysis was available."
             )
 
-        # IMPORTANT:
-        # Do NOT create the old stale evidence gap merely because
-        # web search exists. If investigation evidence exists,
-        # business-specific investigation is already available.
-
         if (
             why_intent
             and web_search_found
@@ -1205,11 +1200,6 @@ class BusinessReasoning:
                 {}
             )
 
-            comparison = investigation.get(
-                "comparison",
-                {}
-            )
-
             differences = investigation.get(
                 "differences",
                 {}
@@ -1368,10 +1358,6 @@ class BusinessReasoning:
                         )
                     )
 
-            # -------------------------------------------------
-            # PRODUCT MONTHLY CONSISTENCY
-            # -------------------------------------------------
-
             if target_product:
 
                 product_monthly = []
@@ -1449,13 +1435,8 @@ class BusinessReasoning:
                             increasing = False
                             break
 
-                    first_month = (
-                        product_monthly[0]
-                    )
-
-                    last_month = (
-                        product_monthly[-1]
-                    )
+                    first_month = product_monthly[0]
+                    last_month = product_monthly[-1]
 
                     if increasing:
 
@@ -1480,10 +1461,6 @@ class BusinessReasoning:
                             f"its performance should be evaluated "
                             f"month by month."
                         )
-
-            # -------------------------------------------------
-            # HISTORICAL TREND EVIDENCE
-            # -------------------------------------------------
 
             historical_monthly = investigation.get(
                 "monthly_analysis",
@@ -1548,10 +1525,6 @@ class BusinessReasoning:
                     ""
                 )
             ).lower()
-
-            # -------------------------------------------------
-            # REGIONAL PRODUCT CONTRIBUTION
-            # -------------------------------------------------
 
             if investigation_type == (
                 "regional_product_contribution"
@@ -1657,10 +1630,6 @@ class BusinessReasoning:
                                     f"revenue contribution was: "
                                     f"{contribution_text}."
                                 )
-
-            # -------------------------------------------------
-            # REGIONAL HISTORICAL TREND
-            # -------------------------------------------------
 
             elif investigation_type in (
                 "regional_historical_trend",
@@ -1837,17 +1806,23 @@ class BusinessReasoning:
                 )
 
         # =====================================================
-        # INVESTIGATION STATUS
+        # FINAL INVESTIGATION STATUS
         # =====================================================
 
-        if investigation_required:
+        if investigation_completed:
+            investigation_required = False
 
-            if not investigation_completed:
+        investigation_pending = (
+            investigation_required
+            and not investigation_completed
+        )
 
-                evidence_gaps.append(
-                    "Additional investigation is required "
-                    "to support the requested causal explanation."
-                )
+        if investigation_pending:
+
+            evidence_gaps.append(
+                "Additional investigation is required "
+                "to support the requested causal explanation."
+            )
 
         # =====================================================
         # DEDUPLICATE
@@ -1868,10 +1843,6 @@ class BusinessReasoning:
         # =====================================================
         # FINAL SOURCE LIST
         # =====================================================
-
-        # IMPORTANT:
-        # Only primary external sources are returned here.
-        # Count MUST always match this list.
 
         external_sources = (
             primary_external_sources
@@ -1907,10 +1878,7 @@ class BusinessReasoning:
 
                 "completed": investigation_completed,
 
-                "pending": (
-                    investigation_required
-                    and not investigation_completed
-                ),
+                "pending": investigation_pending,
 
                 "questions": (
                     self._dedupe_strings(
@@ -2477,5 +2445,5 @@ class BusinessReasoning:
                 "investigation_result_count": 0,
                 "investigation_evidence_count": 0,
             },
-            }
+                }
                         
