@@ -55,24 +55,39 @@ class InvestigationPlanner:
                 phrase in question_lower
                 for phrase in [
                     "persistent or temporary",
+                    "historical",
+                    "historically",
                     "historical sales",
                     "historical product",
-                    "persistent over time",
-                    "over time",
                     "historical trend",
+                    "over time",
+                    "past months",
+                    "previous months",
+                    "monthly trend",
+                    "monthly trends",
+                    "revenue changed",
+                    "revenue change",
+                    "revenue trend",
+                    "revenue trends",
+                    "sales changed",
+                    "sales change",
                     "sales trend",
+                    "sales trends",
+                    "persistent over time",
                     "trend",
                     "consistent across",
                     "consistent over",
                     "across the observed months",
-                    "across months"
+                    "across months",
+                    "month over month",
+                    "month-to-month"
                 ]
             ):
 
                 tasks.append({
                     "task_id": f"investigation_{index}",
                     "description": question,
-                    "type": "data_request",
+                    "type": "historical_trend",
                     "tool": "data_analysis",
                     "status": "pending"
                 })
@@ -203,6 +218,6 @@ class InvestigationPlanner:
             "task_count": len(tasks),
             "tasks": tasks,
             "issues": []
-        }
+                }
         
 
