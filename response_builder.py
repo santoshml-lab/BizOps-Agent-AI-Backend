@@ -1,138 +1,70 @@
 from typing import Any, Dict, List
+import re
+
 
 class ResponseBuilder:
 
- def build(
-    self,
-    user_request: str,
-    plan: Dict[str, Any],
-    execution_results: List[Dict[str, Any]],
-    memory_context: List[Dict[str, Any]],
-    reasoning_result: Dict[str, Any] | None = None
-) -> Dict[str, Any]:
+    def build(
+        self,
+        user_request: str,
+        plan: Dict[str, Any],
+        execution_results: List[Dict[str, Any]],
+        memory_context: List[Dict[str, Any]],
+        reasoning_result: Dict[str, Any] | None = None
+    ) -> Dict[str, Any]:
 
-    insights = []
-    recommendations = []
-    evidence_gaps = []
-    business_concern = None
-    external_sources = []
+        insights = []
+        recommendations = []
+        evidence_gaps = []
+        business_concern = None
+        external_sources = []
 
-    # ============================================================
-    # 1. Use Business Reasoning results when available
-    # ============================================================
+        # ============================================================
+        # 1. Use Business Reasoning results when available
+        # ============================================================
 
-    if reasoning_result:
+        if reasoning_result:
 
-        insights.extend(
-            reasoning_result.get(
-                "insights",
-                []
-            )
-        )
-
-        recommendations.extend(
-            reasoning_result.get(
-                "recommendations",
-                []
-            )
-        )
-
-        evidence_gaps.extend(
-            reasoning_result.get(
-                "evidence_gaps",
-                []
-            )
-        )
-
-        business_concern = reasoning_result.get(
-            "business_concern"
-        )
-
-    # ============================================================
-    # 2. Extract external web sources
-    # ============================================================
-
-    for result in execution_results:
-
-        if not isinstance(result, dict):
-            continue
-
-        if result.get("status") != "success":
-            continue
-
-        if result.get("tool") != "web_search":
-            continue
-
-        output = result.get(
-            "output",
-            {}
-        )
-
-        if not isinstance(output, dict):
-            continue
-
-        web_results = output.get(
-            "results",
-            []
-        )
-
-        if not isinstance(web_results, list):
-            continue
-
-        for item in web_results:
-
-            if not isinstance(item, dict):
-                continue
-
-            title = item.get("title")
-            url = item.get("url")
-            content = item.get("content")
-
-            if not title and not url:
-                continue
-
-            source = {
-                "title": title,
-                "url": url,
-                "content": content
-            }
-
-            external_sources.append(
-                source
+            insights.extend(
+                reasoning_result.get(
+                    "insights",
+                    []
+                )
             )
 
-    # Remove duplicate sources
-    unique_sources = []
+            recommendations.extend(
+                reasoning_result.get(
+                    "recommendations",
+                    []
+                )
+            )
 
-    seen_urls = set()
+            evidence_gaps.extend(
+                reasoning_result.get(
+                    "evidence_gaps",
+                    []
+                )
+            )
 
-    for source in external_sources:
+            business_concern = reasoning_result.get(
+                "business_concern"
+            )
 
-        url = source.get("url")
-
-        if url and url in seen_urls:
-            continue
-
-        if url:
-            seen_urls.add(url)
-
-        unique_sources.append(source)
-
-    external_sources = unique_sources
-
-    # ============================================================
-    # 3. Fallback to execution-level insights
-    #    if Business Reasoning produced nothing
-    # ============================================================
-
-    if not insights:
+        # ============================================================
+        # 2. Extract external web sources
+        # ============================================================
 
         for result in execution_results:
+
+            if not isinstance(result, dict):
+                continue
 
             if result.get("status") != "success":
                 continue
 
-            tool = result.get("tool")
+            if result.get("tool") != "web_search":
+                continue
+
             output = result.get(
                 "output",
                 {}
@@ -141,163 +73,335 @@ class ResponseBuilder:
             if not isinstance(output, dict):
                 continue
 
-            # ----------------------------------------------------
-            # DATA ANALYSIS
-            # ----------------------------------------------------
+            web_results = output.get(
+                "results",
+                []
+            )
 
-            if tool == "data_analysis":
+            if not isinstance(web_results, list):
+                continue
 
-                numeric_summary = output.get(
-                    "numeric_summary",
+            for item in web_results:
+
+                if not isinstance(item, dict):
+                    continue
+
+                title = item.get("title")
+                url = item.get("url")
+                content = item.get("content")
+
+                if not title and not url:
+                    continue
+
+                source = {
+                    "title": title,
+                    "url": url,
+                    "content": content
+                }
+
+                external_sources.append(
+                    source
+                )
+
+        # ============================================================
+        # 3. Remove duplicate external sources
+        # ============================================================
+
+        unique_sources = []
+        seen_urls = set()
+
+        for source in external_sources:
+
+            url = source.get("url")
+
+            if url and url in seen_urls:
+                continue
+
+            if url:
+                seen_urls.add(url)
+
+            unique_sources.append(source)
+
+        external_sources = unique_sources
+
+        actual_source_count = len(
+            external_sources
+        )
+
+        # ============================================================
+        # 4. Detect completed investigation
+        #
+        # Business reasoning may still contain a stale evidence gap
+        # even after validated investigation results are available.
+        # ============================================================
+
+        investigation_completed = False
+
+        if reasoning_result:
+
+            investigation = reasoning_result.get(
+                "investigation",
+                {}
+            )
+
+            if isinstance(
+                investigation,
+                dict
+            ):
+                investigation_completed = (
+                    investigation.get(
+                        "completed",
+                        False
+                    )
+                    is True
+                )
+
+        # Remove stale investigation-pending messages when
+        # investigation has actually completed.
+        if investigation_completed:
+
+            evidence_gaps = [
+                gap
+                for gap in evidence_gaps
+                if not any(
+                    phrase in str(gap).lower()
+                    for phrase in [
+                        "additional investigation is required",
+                        "business-specific investigation evidence is not yet available",
+                        "investigation is required",
+                        "investigation evidence is not yet available"
+                    ]
+                )
+            ]
+
+        # ============================================================
+        # 5. Normalize source-count insight
+        #
+        # BusinessReasoning may have generated an outdated source
+        # count. The ResponseBuilder has the actual final source list,
+        # so use that count as the canonical value.
+        # ============================================================
+
+        normalized_insights = []
+
+        for insight in insights:
+
+            if not isinstance(insight, str):
+                normalized_insights.append(
+                    insight
+                )
+                continue
+
+            lower_insight = insight.lower()
+
+            if (
+                "validated source" in lower_insight
+                or "validated sources" in lower_insight
+            ):
+
+                insight = re.sub(
+                    r"\b\d+\s+validated\s+source\(s\)",
+                    f"{actual_source_count} validated source(s)",
+                    insight,
+                    flags=re.IGNORECASE
+                )
+
+            normalized_insights.append(
+                insight
+            )
+
+        insights = normalized_insights
+
+        # ============================================================
+        # 6. Fallback to execution-level insights
+        #    if Business Reasoning produced nothing
+        # ============================================================
+
+        if not insights:
+
+            for result in execution_results:
+
+                if not isinstance(result, dict):
+                    continue
+
+                if result.get("status") != "success":
+                    continue
+
+                tool = result.get("tool")
+
+                output = result.get(
+                    "output",
                     {}
                 )
 
-                if not isinstance(
-                    numeric_summary,
-                    dict
-                ):
+                if not isinstance(output, dict):
                     continue
 
-                for column, summary in numeric_summary.items():
+                # ----------------------------------------------------
+                # DATA ANALYSIS
+                # ----------------------------------------------------
+
+                if tool == "data_analysis":
+
+                    numeric_summary = output.get(
+                        "numeric_summary",
+                        {}
+                    )
 
                     if not isinstance(
-                        summary,
+                        numeric_summary,
                         dict
                     ):
                         continue
 
-                    total = summary.get("sum")
-                    average = summary.get("average")
-                    minimum = summary.get("minimum")
-                    maximum = summary.get("maximum")
+                    for column, summary in numeric_summary.items():
 
-                    insights.append(
-                        f"{column.capitalize()} total is {total}, "
-                        f"with an average of {average}. "
-                        f"The minimum is {minimum} and "
-                        f"the maximum is {maximum}."
+                        if not isinstance(
+                            summary,
+                            dict
+                        ):
+                            continue
+
+                        total = summary.get("sum")
+                        average = summary.get("average")
+                        minimum = summary.get("minimum")
+                        maximum = summary.get("maximum")
+
+                        insights.append(
+                            f"{column.capitalize()} total is {total}, "
+                            f"with an average of {average}. "
+                            f"The minimum is {minimum} and "
+                            f"the maximum is {maximum}."
+                        )
+
+                # ----------------------------------------------------
+                # CALCULATOR
+                # ----------------------------------------------------
+
+                elif tool == "calculator":
+
+                    if "result" in output:
+
+                        insights.append(
+                            f"The calculated result is "
+                            f"{output['result']}."
+                        )
+
+                # ----------------------------------------------------
+                # WEB SEARCH
+                # ----------------------------------------------------
+
+                elif tool == "web_search":
+
+                    results = output.get(
+                        "results",
+                        []
                     )
 
-            # ----------------------------------------------------
-            # CALCULATOR
-            # ----------------------------------------------------
+                    if results:
 
-            elif tool == "calculator":
+                        insights.append(
+                            f"The web search returned "
+                            f"{len(results)} relevant external sources."
+                        )
 
-                if "result" in output:
+        # ============================================================
+        # 7. Use stored business goal as additional context
+        # ============================================================
 
-                    insights.append(
-                        f"The calculated result is "
-                        f"{output['result']}."
-                    )
+        business_goals = [
+            memory.get("value")
+            for memory in memory_context
+            if isinstance(memory, dict)
+            and memory.get("key") == "business_goal"
+        ]
 
-            # ----------------------------------------------------
-            # WEB SEARCH
-            # ----------------------------------------------------
+        if business_goals and insights:
 
-            elif tool == "web_search":
+            recommendations.append(
+                "Evaluate these findings against "
+                f"the stored business goal: {business_goals[0]}."
+            )
 
-                results = output.get(
-                    "results",
-                    []
+        # ============================================================
+        # 8. Final fallback
+        # ============================================================
+
+        if not insights:
+
+            insights.append(
+                "The agent completed the requested tasks "
+                "but no business insight was generated."
+            )
+
+        # ============================================================
+        # 9. Build final response
+        # ============================================================
+
+        final_response = " ".join(
+            str(insight)
+            for insight in insights
+        )
+
+        if business_concern:
+
+            final_response += (
+                " Main business concern: "
+                + str(business_concern)
+            )
+
+        if evidence_gaps:
+
+            final_response += (
+                " Evidence gaps: "
+                + "; ".join(
+                    str(gap)
+                    for gap in evidence_gaps
                 )
+                + "."
+            )
 
-                if results:
+        if recommendations:
 
-                    insights.append(
-                        f"The web search returned "
-                        f"{len(results)} relevant external sources."
-                    )
+            final_response += (
+                " Recommended next steps: "
+                + " ".join(
+                    str(recommendation)
+                    for recommendation in recommendations
+                )
+            )
 
-    # ============================================================
-    # 4. Use stored business goal as additional context
-    # ============================================================
+        # ============================================================
+        # 10. Add external research context
+        # ============================================================
 
-    business_goals = [
-        memory.get("value")
-        for memory in memory_context
-        if memory.get("key") == "business_goal"
-    ]
+        if external_sources:
 
-    if business_goals and insights:
+            final_response += (
+                f" External market research included "
+                f"{actual_source_count} sources for contextual analysis."
+            )
 
-        recommendations.append(
-            "Evaluate these findings against "
-            f"the stored business goal: {business_goals[0]}."
-        )
+        # ============================================================
+        # 11. Return structured agent response
+        # ============================================================
 
-    # ============================================================
-    # 5. Final fallback
-    # ============================================================
+        return {
+            "status": "success",
+            "user_request": user_request,
 
-    if not insights:
+            # Company/internal reasoning
+            "insights": insights,
 
-        insights.append(
-            "The agent completed the requested tasks "
-            "but no business insight was generated."
-        )
+            "business_concern": business_concern,
 
-    # ============================================================
-    # 6. Build final response
-    # ============================================================
+            "evidence_gaps": evidence_gaps,
 
-    final_response = " ".join(
-        insights
-    )
+            "recommendations": recommendations,
 
-    if business_concern:
+            # External evidence
+            "external_sources": external_sources,
 
-        final_response += (
-            " Main business concern: "
-            + business_concern
-        )
-
-    if evidence_gaps:
-
-        final_response += (
-            " Evidence gaps: "
-            + "; ".join(evidence_gaps)
-            + "."
-        )
-
-    if recommendations:
-
-        final_response += (
-            " Recommended next steps: "
-            + " ".join(recommendations)
-        )
-
-    # ============================================================
-    # 7. Add external research context
-    # ============================================================
-
-    if external_sources:
-
-        final_response += (
-            f" External market research included "
-            f"{len(external_sources)} sources for contextual analysis."
-        )
-
-    # ============================================================
-    # 8. Return structured agent response
-    # ============================================================
-
-    return {
-        "status": "success",
-        "user_request": user_request,
-
-        # Company/internal reasoning
-        "insights": insights,
-
-        "business_concern": business_concern,
-
-        "evidence_gaps": evidence_gaps,
-
-        "recommendations": recommendations,
-
-        # External evidence
-        "external_sources": external_sources,
-
-        # Human-readable response
-        "final_response": final_response
-    }
+            # Human-readable response
+            "final_response": final_response
+        }
