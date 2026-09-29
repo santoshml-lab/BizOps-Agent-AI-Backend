@@ -54,34 +54,34 @@ class InvestigationPlanner:
             if any(
                 phrase in question_lower
                 for phrase in [
-                    "persistent or temporary",
-                    "historical",
-                    "historically",
-                    "historical sales",
-                    "historical product",
-                    "historical trend",
-                    "over time",
-                    "past months",
-                    "previous months",
-                    "monthly trend",
-                    "monthly trends",
-                    "revenue changed",
-                    "revenue change",
-                    "revenue trend",
-                    "revenue trends",
-                    "sales changed",
-                    "sales change",
-                    "sales trend",
-                    "sales trends",
-                    "persistent over time",
-                    "trend",
-                    "consistent across",
-                    "consistent over",
-                    "across the observed months",
-                    "across months",
-                    "month over month",
-                    "month-to-month"
+                    "why does",
+                    "why is",
+                    "why does this product",
+                    "why is this product",
+                    "why does the top",
+                    "why is the top",
+                    "why does it outperform",
+                    "why does it generate",
+                    "why is it generating",
+                    "factors driving",
+                    "factors behind",
+                    "factors are most strongly associated",
+                    "factors most strongly associated",
+                    "product-level factors",
+                    "reasons behind",
+                    "reason behind",
+                    "what factors",
+                    "what drives",
+                    "driving revenue",
+                    "revenue drivers",
+                    "performance drivers",
+                    "outperforms other products",
+                    "outperforms others"
                 ]
+                    
+                    
+               
+                
             ):
 
                 tasks.append({
