@@ -834,8 +834,13 @@ class Orchestrator:
             re_reasoning_input = {
                 "status": "success",
                 "count": len(combined_results),
-                "results": combined_results
+                "results": combined_results,
+                "investigation_results": investigation_results,
             }
+                
+                
+                
+            
 
             re_reasoning_result = (
                 self.business_reasoning.reason(
