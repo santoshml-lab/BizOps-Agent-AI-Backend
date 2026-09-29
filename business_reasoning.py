@@ -926,24 +926,19 @@ class BusinessReasoning:
         # =====================================================
         # PRODUCT REASONING
         # IMPORTANT:
-        # Product queries should stay product-focused.
+        # Keep product queries focused.
+        #
+        # For "why/how" questions, detailed causal reasoning
+        # is handled later from investigation evidence.
+        # Therefore, do not generate the old weakest-product
+        # comparison here.
         # =====================================================
 
-        if product_analysis and (
-            product_intent
-            or strongest_product
-        ):
+        if product_analysis and product_intent:
 
             strongest_name = (
                 self._resolve_product_name(
                     strongest_product,
-                    product_analysis
-                )
-            )
-
-            weakest_name = (
-                self._resolve_product_name(
-                    weakest_product,
                     product_analysis
                 )
             )
@@ -954,15 +949,6 @@ class BusinessReasoning:
                     {}
                 )
                 if strongest_name
-                else {}
-            )
-
-            weakest_data = (
-                product_analysis.get(
-                    weakest_name,
-                    {}
-                )
-                if weakest_name
                 else {}
             )
 
@@ -994,92 +980,111 @@ class BusinessReasoning:
                 )
 
             # -------------------------------------------------
-            # PRODUCT COMPARISON
+            # SIMPLE PRODUCT QUERY
+            #
+            # For non-why questions, provide a factual
+            # comparison with the next-highest revenue product.
+            # Do NOT compare automatically with the weakest.
             # -------------------------------------------------
 
             if (
-                strongest_name
-                and weakest_name
-                and strongest_name != weakest_name
+                not why_intent
+                and strongest_name
                 and isinstance(
                     strongest_data,
                     dict
                 )
-                and isinstance(
-                    weakest_data,
-                    dict
-                )
             ):
 
-                strongest_units = (
-                    self._safe_number(
-                        strongest_data.get(
-                            "units_sold",
+                competitors = []
+
+                for product_name, data in product_analysis.items():
+
+                    if product_name == strongest_name:
+                        continue
+
+                    if not isinstance(
+                        data,
+                        dict
+                    ):
+                        continue
+
+                    revenue = self._safe_number(
+                        data.get(
+                            "revenue",
                             0
                         )
                     )
-                )
 
-                weakest_units = (
-                    self._safe_number(
-                        weakest_data.get(
-                            "units_sold",
-                            0
+                    competitors.append(
+                        (
+                            product_name,
+                            revenue,
+                            data
                         )
                     )
+
+                competitors.sort(
+                    key=lambda item: item[1],
+                    reverse=True
                 )
 
-                strongest_price = (
-                    self._safe_number(
-                        strongest_data.get(
-                            "average_unit_price",
-                            0
+                if competitors:
+
+                    competitor_name = competitors[0][0]
+                    competitor_data = competitors[0][2]
+
+                    strongest_units = (
+                        self._safe_number(
+                            strongest_data.get(
+                                "units_sold",
+                                0
+                            )
                         )
                     )
-                )
 
-                weakest_price = (
-                    self._safe_number(
-                        weakest_data.get(
-                            "average_unit_price",
-                            0
+                    competitor_units = (
+                        self._safe_number(
+                            competitor_data.get(
+                                "units_sold",
+                                0
+                            )
                         )
                     )
-                )
 
-                strongest_discount = (
-                    self._safe_number(
-                        strongest_data.get(
-                            "average_discount",
-                            0
+                    strongest_price = (
+                        self._safe_number(
+                            strongest_data.get(
+                                "average_unit_price",
+                                0
+                            )
                         )
                     )
-                )
 
-                weakest_discount = (
-                    self._safe_number(
-                        weakest_data.get(
-                            "average_discount",
-                            0
+                    competitor_price = (
+                        self._safe_number(
+                            competitor_data.get(
+                                "average_unit_price",
+                                0
+                            )
                         )
                     )
-                )
 
-                insights.append(
-                    f"{strongest_name} versus "
-                    f"{weakest_name}: {strongest_name} "
-                    f"has {strongest_units:,.0f} units sold "
-                    f"at an average unit price of "
-                    f"{strongest_price:,.2f} with an average "
-                    f"discount of {strongest_discount:.2f}%, "
-                    f"while {weakest_name} has "
-                    f"{weakest_units:,.0f} units sold at "
-                    f"{weakest_price:,.2f} with an average "
-                    f"discount of {weakest_discount:.2f}%."
-                )
+                    insights.append(
+                        f"{strongest_name} has "
+                        f"{strongest_units:,.0f} units sold "
+                        f"at an average unit price of "
+                        f"{strongest_price:,.2f}, compared with "
+                        f"{competitor_name}'s "
+                        f"{competitor_units:,.0f} units at "
+                        f"{competitor_price:,.2f}."
+                    )
 
             # -------------------------------------------------
-            # WHY PRODUCT INVESTIGATION
+            # WHY PRODUCT QUERY
+            #
+            # Investigation evidence later in this method
+            # will provide the actual explanation.
             # -------------------------------------------------
 
             if why_intent and strongest_name:
@@ -1088,29 +1093,17 @@ class BusinessReasoning:
 
                 investigation_questions.extend([
                     f"Why does {strongest_name} generate more revenue based on units, pricing, and discounts?",
-                    f"Is the advantage of {strongest_name} consistent across months?",
-                    f"What factors are associated with {strongest_name} having higher revenue?",
+                    f"Is the revenue advantage of {strongest_name} consistent across months?",
+                    f"Which product-level factors are most strongly associated with {strongest_name}'s revenue advantage?",
                 ])
+        
+                    
 
-            # -------------------------------------------------
-            # PRODUCT RECOMMENDATIONS
-            # -------------------------------------------------
+            
+                    
+                            
 
-            if why_intent and strongest_name:
-
-                recommendations.extend([
-                    f"Review {strongest_name}'s unit volume, pricing, and discount profile to identify the main revenue drivers.",
-                    f"Compare {strongest_name}'s monthly performance with other products to determine whether its revenue advantage is consistent.",
-                    "Use product-level pricing, volume, and discount signals together when planning future product decisions.",
-                ])
-
-            elif weakest_name:
-
-                recommendations.extend([
-                    f"Investigate {weakest_name}'s unit volume, pricing, and discount pattern against stronger products.",
-                    f"Review the monthly performance of {weakest_name} to determine whether the weakness is persistent or recent.",
-                    "Test product-level pricing, promotion, and demand signals before changing the broader product strategy.",
-                ])
+                
 
         # =====================================================
         # REGION REASONING
