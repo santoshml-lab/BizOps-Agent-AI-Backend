@@ -45,10 +45,14 @@ class InvestigationPlanner:
             start=1
         ):
 
-            question_lower = question.lower()
+            question_lower = str(question).lower().strip()
 
             # -------------------------------------------------
-            # INTERNAL BUSINESS DATA / HISTORICAL INVESTIGATION
+            # 1. PRODUCT PERFORMANCE / WHY INVESTIGATION
+            # -------------------------------------------------
+            # This MUST come before historical classification.
+            # Otherwise questions containing "why" or "factors"
+            # can be incorrectly classified.
             # -------------------------------------------------
 
             if any(
@@ -56,69 +60,35 @@ class InvestigationPlanner:
                 for phrase in [
                     "why does",
                     "why is",
+                    "why are",
+                    "why did",
                     "why does this product",
                     "why is this product",
                     "why does the top",
                     "why is the top",
                     "why does it outperform",
+                    "why is it outperforming",
                     "why does it generate",
                     "why is it generating",
+                    "why did it outperform",
                     "factors driving",
                     "factors behind",
                     "factors are most strongly associated",
                     "factors most strongly associated",
                     "product-level factors",
+                    "product level factors",
                     "reasons behind",
                     "reason behind",
                     "what factors",
                     "what drives",
+                    "what is driving",
                     "driving revenue",
                     "revenue drivers",
                     "performance drivers",
                     "outperforms other products",
-                    "outperforms others"
-                ]
-                    
-                    
-               
-                
-            ):
-
-                tasks.append({
-                    "task_id": f"investigation_{index}",
-                    "description": question,
-                    "type": "historical_trend",
-                    "tool": "data_analysis",
-                    "status": "pending"
-                })
-
-            # -------------------------------------------------
-            # PRODUCT PERFORMANCE / WHY INVESTIGATION
-            # -------------------------------------------------
-
-            elif any(
-                phrase in question_lower
-                for phrase in [
-                    "why does",
-                    "why is",
-                    "why does this product",
-                    "why is this product",
-                    "why does the top",
-                    "why is the top",
-                    "why does it outperform",
-                    "why does it generate",
-                    "why is it generating",
-                    "factors driving",
-                    "factors behind",
-                    "reasons behind",
-                    "reason behind",
-                    "what factors",
-                    "what drives",
-                    "driving revenue",
-                    "revenue drivers",
-                    "performance drivers",
-                    "outperforms other products",
-                    "outperforms others"
+                    "outperforms others",
+                    "outperform other products",
+                    "outperform others"
                 ]
             ):
 
@@ -131,7 +101,63 @@ class InvestigationPlanner:
                 })
 
             # -------------------------------------------------
-            # PRODUCT / PRODUCT MIX INVESTIGATION
+            # 2. HISTORICAL / MONTHLY TREND INVESTIGATION
+            # -------------------------------------------------
+            # Questions about consistency, months, trends,
+            # historical movement, or persistence.
+            # -------------------------------------------------
+
+            elif any(
+                phrase in question_lower
+                for phrase in [
+                    "persistent or temporary",
+                    "historical",
+                    "historically",
+                    "historical sales",
+                    "historical product",
+                    "historical trend",
+                    "historical trends",
+                    "over time",
+                    "past months",
+                    "previous months",
+                    "previous month",
+                    "monthly trend",
+                    "monthly trends",
+                    "monthly performance",
+                    "revenue changed",
+                    "revenue change",
+                    "revenue trend",
+                    "revenue trends",
+                    "sales changed",
+                    "sales change",
+                    "sales trend",
+                    "sales trends",
+                    "persistent over time",
+                    "persistent across months",
+                    "consistent across",
+                    "consistent over",
+                    "consistent across months",
+                    "across the observed months",
+                    "across months",
+                    "across the months",
+                    "month over month",
+                    "month-to-month",
+                    "month on month",
+                    "from month to month",
+                    "monthly"
+                ]
+            ):
+
+                tasks.append({
+                    "task_id": f"investigation_{index}",
+                    "description": question,
+                    "type": "historical_trend",
+                    "tool": "data_analysis",
+                    "status": "pending"
+                })
+
+            # -------------------------------------------------
+            # 3. PRODUCT / PRODUCT MIX INVESTIGATION
             # -------------------------------------------------
 
             elif any(
@@ -141,7 +167,12 @@ class InvestigationPlanner:
                     "product mix",
                     "products contribute",
                     "product contribution",
-                    "by product"
+                    "product contributions",
+                    "by product",
+                    "product performance",
+                    "compare products",
+                    "compare product",
+                    "product comparison"
                 ]
             ):
 
@@ -154,7 +185,7 @@ class InvestigationPlanner:
                 })
 
             # -------------------------------------------------
-            # EXTERNAL MARKET / COMPETITOR INVESTIGATION
+            # 4. EXTERNAL MARKET / COMPETITOR INVESTIGATION
             # -------------------------------------------------
 
             elif any(
@@ -162,9 +193,15 @@ class InvestigationPlanner:
                 for phrase in [
                     "market",
                     "competitor",
+                    "competitors",
                     "competitive",
+                    "competition",
                     "industry",
-                    "external"
+                    "external",
+                    "market trend",
+                    "industry trend",
+                    "market demand",
+                    "competitor trend"
                 ]
             ):
 
@@ -177,7 +214,7 @@ class InvestigationPlanner:
                 })
 
             # -------------------------------------------------
-            # BUSINESS PERFORMANCE INVESTIGATION
+            # 5. BUSINESS PERFORMANCE INVESTIGATION
             # -------------------------------------------------
 
             elif any(
@@ -187,7 +224,10 @@ class InvestigationPlanner:
                     "underperformance",
                     "performance gap",
                     "performing worse",
-                    "performing better"
+                    "performing better",
+                    "weak performance",
+                    "strong performance",
+                    "business performance"
                 ]
             ):
 
@@ -200,7 +240,7 @@ class InvestigationPlanner:
                 })
 
             # -------------------------------------------------
-            # UNKNOWN INVESTIGATION TYPE
+            # 6. UNKNOWN INVESTIGATION TYPE
             # -------------------------------------------------
 
             else:
