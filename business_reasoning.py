@@ -1870,6 +1870,7 @@ class BusinessReasoning:
             if external_intent
             else 0
         )
+        
 
        
                         
