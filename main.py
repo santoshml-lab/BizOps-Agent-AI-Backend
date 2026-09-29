@@ -188,36 +188,70 @@ def test_post(input_data: Dict[str, Any]):
 @app.post("/agent/run")
 def run_agent(input_data: Dict[str, Any]):
 
-    user_request = (
-        input_data.get("query")
-        or input_data.get("request")
-    )
+    try:
+        print("========== AGENT RUN START ==========")
+        print("INPUT:", input_data)
 
-    task_inputs = input_data.get(
-        "task_inputs",
-        {}
-    )
+        user_request = (
+            input_data.get("query")
+            or input_data.get("request")
+        )
 
-    session_id = input_data.get(
-        "session_id",
-        "default_session"
-    )
+        if not user_request:
+            return {
+                "status": "failed",
+                "error": "Query or request is required.",
+            }
 
-    orchestrator = Orchestrator(
-        memory_manager
-    )
+        task_inputs = input_data.get(
+            "task_inputs",
+            {}
+        )
 
-    result = orchestrator.run(
-        user_request,
-        task_inputs,
-        session_id
-    )
+        session_id = input_data.get(
+            "session_id",
+            "default_session"
+        )
 
-    result["trace"] = (
-        orchestrator.trace.get_trace()
-    )
+        print("USER REQUEST:", user_request)
+        print("SESSION:", session_id)
 
-    return result
+        orchestrator = Orchestrator(
+            memory_manager
+        )
+
+        print("ORCHESTRATOR CREATED")
+
+        result = orchestrator.run(
+            user_request,
+            task_inputs,
+            session_id
+        )
+
+        print("ORCHESTRATOR COMPLETED")
+
+        result["trace"] = (
+            orchestrator.trace.get_trace()
+        )
+
+        print("========== AGENT RUN SUCCESS ==========")
+
+        return result
+
+    except Exception as error:
+
+        print("========== AGENT RUN FAILED ==========")
+        print("ERROR TYPE:", type(error).__name__)
+        print("ERROR:", str(error))
+
+        return {
+            "status": "failed",
+            "error_type": type(error).__name__,
+            "error": str(error),
+        }
+
+
+
 
 
 
