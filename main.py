@@ -14,6 +14,7 @@ from input_resolver import InputResolver
 from result_aggregator import ResultAggregator
 from business_reasoning import BusinessReasoning
 from investigation import InvestigationPlanner
+from fastapi.middleware.cors import CORSMiddleware
 from supabase_client import supabase
 from groq_client import groq_client
 from groq_planner import (
@@ -26,6 +27,13 @@ app = FastAPI(
     title="BizOps Agent AI",
     description="Agentic AI system for business operations",
     version="1.0.0",
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 memory_manager = MemoryManager()
