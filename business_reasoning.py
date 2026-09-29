@@ -22,6 +22,94 @@ class BusinessReasoning:
             )
 
         user_request = str(user_request or "").strip()
+        query_lower = user_request.lower()
+
+        # =====================================================
+        # QUERY INTENT
+        # =====================================================
+
+        product_intent = any(
+            keyword in query_lower
+            for keyword in [
+                "product",
+                "products",
+                "item",
+                "items",
+                "sku",
+            ]
+        )
+
+        region_intent = any(
+            keyword in query_lower
+            for keyword in [
+                "region",
+                "regional",
+                "north",
+                "south",
+                "east",
+                "west",
+                "territory",
+                "location",
+            ]
+        )
+
+        monthly_intent = any(
+            keyword in query_lower
+            for keyword in [
+                "month",
+                "monthly",
+                "sales dropped",
+                "sales drop",
+                "revenue dropped",
+                "revenue drop",
+                "this month",
+                "last month",
+                "latest month",
+                "trend",
+                "trends",
+                "month over month",
+                "historical",
+                "historically",
+                "past months",
+            ]
+        )
+
+        why_intent = any(
+            keyword in query_lower
+            for keyword in [
+                "why",
+                "how",
+                "factor",
+                "factors",
+                "reason",
+                "reasons",
+                "driver",
+                "drivers",
+                "outperform",
+                "underperform",
+                "caused",
+                "cause",
+            ]
+        )
+
+        # External research should only become visible when the
+        # question actually asks for market/external context.
+        external_intent = any(
+            keyword in query_lower
+            for keyword in [
+                "market",
+                "external",
+                "industry",
+                "competition",
+                "competitor",
+                "customer behavior",
+                "consumer behavior",
+                "economic",
+                "industry trend",
+                "market factor",
+                "market factors",
+            ]
+        )
 
         # =====================================================
         # NORMALIZE ORIGINAL RESULTS
@@ -109,9 +197,7 @@ class BusinessReasoning:
                 and isinstance(output, dict)
                 and output.get("status") == "success"
             ):
-                analysis_outputs.append(
-                    output
-                )
+                analysis_outputs.append(output)
 
         # =====================================================
         # PRIMARY WEB SOURCES
@@ -232,7 +318,7 @@ class BusinessReasoning:
         )
 
         # =====================================================
-        # COMBINED EXTERNAL EVIDENCE
+        # EXTERNAL EVIDENCE
         # =====================================================
 
         external_evidence = self._dedupe_strings(
@@ -257,70 +343,6 @@ class BusinessReasoning:
         web_search_found = (
             primary_web_search_found
             or investigation_web_search_found
-        )
-
-        # =====================================================
-        # QUERY INTENT
-        # =====================================================
-
-        query_lower = user_request.lower()
-
-        product_intent = any(
-            keyword in query_lower
-            for keyword in [
-                "product",
-                "products",
-                "item",
-                "sku",
-            ]
-        )
-
-        region_intent = any(
-            keyword in query_lower
-            for keyword in [
-                "region",
-                "regional",
-                "north",
-                "south",
-                "east",
-                "west",
-                "territory",
-                "location",
-            ]
-        )
-
-        monthly_intent = any(
-            keyword in query_lower
-            for keyword in [
-                "month",
-                "monthly",
-                "sales dropped",
-                "sales drop",
-                "revenue dropped",
-                "revenue drop",
-                "this month",
-                "last month",
-                "trend",
-                "trends",
-            ]
-        )
-
-        why_intent = any(
-            keyword in query_lower
-            for keyword in [
-                "why",
-                "how",
-                "factor",
-                "factors",
-                "reason",
-                "reasons",
-                "driver",
-                "drivers",
-                "outperform",
-                "underperform",
-                "caused",
-                "cause",
-            ]
         )
 
         # =====================================================
@@ -552,22 +574,13 @@ class BusinessReasoning:
                 "No successful business data analysis was available."
             )
 
-        if (
-            why_intent
-            and web_search_found
-            and not investigation_completed
-        ):
-
-            evidence_gaps.append(
-                "External evidence exists, but business-specific "
-                "investigation evidence is not yet available."
-            )
-
         # =====================================================
         # EXTERNAL MARKET CONTEXT
+        # IMPORTANT:
+        # Only show this when query actually asks for it.
         # =====================================================
 
-        if primary_web_search_found:
+        if external_intent and primary_web_search_found:
 
             primary_count = len(
                 primary_external_sources
@@ -586,27 +599,34 @@ class BusinessReasoning:
                 )
 
                 insights.append(
-                    f"Primary external market research included "
-                    f"{primary_count} validated source(s) covering "
-                    f"themes such as {theme_text}. These sources "
-                    f"provide market context rather than proof of "
-                    f"company-specific causation."
+                    f"External market research included "
+                    f"{primary_count} validated source(s) "
+                    f"covering themes such as {theme_text}. "
+                    f"These sources provide market context "
+                    f"rather than proof of company-specific "
+                    f"causation."
                 )
 
             else:
 
                 insights.append(
-                    f"Primary external market research included "
-                    f"{primary_count} validated source(s). These "
-                    f"sources provide market context rather than "
-                    f"proof of company-specific causation."
+                    f"External market research included "
+                    f"{primary_count} validated source(s). "
+                    f"These sources provide market context "
+                    f"rather than proof of company-specific "
+                    f"causation."
                 )
 
         # =====================================================
         # MONTHLY REASONING
+        # IMPORTANT:
+        # Only run for monthly/trend questions.
         # =====================================================
 
-        if monthly_analysis or monthly_change:
+        if monthly_intent and (
+            monthly_analysis
+            or monthly_change
+        ):
 
             combined_monthly_change = {}
 
@@ -679,8 +699,8 @@ class BusinessReasoning:
 
                     insights.append(
                         f"Revenue increased in the latest "
-                        f"observed month ({latest_month}) from "
-                        f"{previous_revenue:,.2f} in "
+                        f"observed month ({latest_month}) "
+                        f"from {previous_revenue:,.2f} in "
                         f"{previous_month} to "
                         f"{current_revenue:,.2f}, a "
                         f"{abs(percentage):.2f}% increase."
@@ -690,8 +710,8 @@ class BusinessReasoning:
 
                     insights.append(
                         f"Revenue decreased in the latest "
-                        f"observed month ({latest_month}) from "
-                        f"{previous_revenue:,.2f} in "
+                        f"observed month ({latest_month}) "
+                        f"from {previous_revenue:,.2f} in "
                         f"{previous_month} to "
                         f"{current_revenue:,.2f}, a "
                         f"{abs(percentage):.2f}% decrease."
@@ -749,10 +769,11 @@ class BusinessReasoning:
 
                 insights.append(
                     "Historical month-over-month declines "
-                    f"were observed in {decline_text}. These "
-                    "declines occurred before the latest observed "
-                    "month and should be analyzed separately from "
-                    "the latest movement."
+                    f"were observed in {decline_text}. "
+                    "These declines occurred before the "
+                    "latest observed month and should be "
+                    "analyzed separately from the latest "
+                    "movement."
                 )
 
             # -------------------------------------------------
@@ -811,7 +832,7 @@ class BusinessReasoning:
                 )
 
             # -------------------------------------------------
-            # LATEST PRODUCT
+            # LATEST MONTH PRODUCT
             # -------------------------------------------------
 
             if monthly_analysis:
@@ -883,66 +904,7 @@ class BusinessReasoning:
                             )
 
             # -------------------------------------------------
-            # INVESTIGATION REQUEST
-            # -------------------------------------------------
-
-            if (
-                why_intent
-                and primary_web_search_found
-                and not investigation_completed
-            ):
-
-                investigation_required = True
-
-                investigation_questions.append(
-                    "Which external market factors, if any, "
-                    "are supported by business-specific evidence?"
-                )
-
-            # -------------------------------------------------
-            # INVESTIGATION WEB SOURCES
-            # -------------------------------------------------
-
-            if investigation_external_sources:
-
-                investigation_count = len(
-                    investigation_external_sources
-                )
-
-                investigation_themes = (
-                    self._extract_market_themes(
-                        investigation_external_evidence
-                    )
-                )
-
-                if investigation_themes:
-
-                    theme_text = ", ".join(
-                        investigation_themes
-                    )
-
-                    insights.append(
-                        "Investigation-stage market research "
-                        f"cross-checked the external context using "
-                        f"{investigation_count} additional validated "
-                        f"source(s), reinforcing themes around "
-                        f"{theme_text}. This strengthens contextual "
-                        "evidence but does not establish that these "
-                        "factors caused the company's revenue movement."
-                    )
-
-                else:
-
-                    insights.append(
-                        "Investigation-stage market research "
-                        f"added {investigation_count} additional "
-                        "validated source(s) for cross-checking "
-                        "external market context. These sources do "
-                        "not establish company-specific causation."
-                    )
-
-            # -------------------------------------------------
-            # RECOMMENDATIONS
+            # MONTHLY RECOMMENDATIONS
             # -------------------------------------------------
 
             if historical_declines:
@@ -958,17 +920,18 @@ class BusinessReasoning:
                 recommendations.extend([
                     "Monitor the latest revenue movement at product and regional level.",
                     "Track units sold, pricing, and discounts alongside monthly revenue.",
-                    "Combine internal sales metrics with relevant external market indicators."
+                    "Combine internal sales metrics with relevant external market indicators.",
                 ])
 
         # =====================================================
         # PRODUCT REASONING
+        # IMPORTANT:
+        # Product queries should stay product-focused.
         # =====================================================
 
         if product_analysis and (
             product_intent
             or strongest_product
-            or weakest_product
         ):
 
             strongest_name = (
@@ -1003,6 +966,10 @@ class BusinessReasoning:
                 else {}
             )
 
+            # -------------------------------------------------
+            # STRONGEST PRODUCT
+            # -------------------------------------------------
+
             if (
                 strongest_name
                 and isinstance(
@@ -1024,29 +991,6 @@ class BusinessReasoning:
                     f"{strongest_name} is the strongest "
                     f"product by total revenue at "
                     f"{strongest_revenue:,.2f}."
-                )
-
-            if (
-                weakest_name
-                and isinstance(
-                    weakest_data,
-                    dict
-                )
-            ):
-
-                weakest_revenue = (
-                    self._safe_number(
-                        weakest_data.get(
-                            "revenue",
-                            0
-                        )
-                    )
-                )
-
-                insights.append(
-                    f"{weakest_name} is the weakest "
-                    f"product by total revenue at "
-                    f"{weakest_revenue:,.2f}."
                 )
 
             # -------------------------------------------------
@@ -1135,24 +1079,32 @@ class BusinessReasoning:
                 )
 
             # -------------------------------------------------
-            # PRODUCT INVESTIGATION REQUEST
+            # WHY PRODUCT INVESTIGATION
             # -------------------------------------------------
 
-            if why_intent:
+            if why_intent and strongest_name:
 
                 investigation_required = True
 
                 investigation_questions.extend([
-                    f"Why does {strongest_name or 'the strongest product'} generate more revenue based on units, pricing, and discounts?",
-                    f"Is the advantage of {strongest_name or 'the strongest product'} consistent across months?",
-                    f"What factors are associated with {strongest_name or 'the strongest product'} having higher revenue?",
+                    f"Why does {strongest_name} generate more revenue based on units, pricing, and discounts?",
+                    f"Is the advantage of {strongest_name} consistent across months?",
+                    f"What factors are associated with {strongest_name} having higher revenue?",
                 ])
 
             # -------------------------------------------------
             # PRODUCT RECOMMENDATIONS
             # -------------------------------------------------
 
-            if weakest_name:
+            if why_intent and strongest_name:
+
+                recommendations.extend([
+                    f"Review {strongest_name}'s unit volume, pricing, and discount profile to identify the main revenue drivers.",
+                    f"Compare {strongest_name}'s monthly performance with other products to determine whether its revenue advantage is consistent.",
+                    "Use product-level pricing, volume, and discount signals together when planning future product decisions.",
+                ])
+
+            elif weakest_name:
 
                 recommendations.extend([
                     f"Investigate {weakest_name}'s unit volume, pricing, and discount pattern against stronger products.",
@@ -1162,9 +1114,14 @@ class BusinessReasoning:
 
         # =====================================================
         # REGION REASONING
+        # IMPORTANT:
+        # Only execute for region-focused questions.
         # =====================================================
 
-        if region_analysis:
+        if (
+            region_intent
+            and region_analysis
+        ):
 
             region_revenues = []
 
@@ -1202,22 +1159,17 @@ class BusinessReasoning:
                     region_revenues[-1]
                 )
 
-                if (
-                    region_intent
-                    or why_intent
-                ):
+                insights.append(
+                    f"{strongest_region[0]} is the strongest "
+                    f"region by revenue at "
+                    f"{strongest_region[1]:,.2f}."
+                )
 
-                    insights.append(
-                        f"{strongest_region[0]} is the strongest "
-                        f"region by revenue at "
-                        f"{strongest_region[1]:,.2f}."
-                    )
-
-                    insights.append(
-                        f"{weakest_region[0]} is the weakest "
-                        f"region by revenue at "
-                        f"{weakest_region[1]:,.2f}."
-                    )
+                insights.append(
+                    f"{weakest_region[0]} is the weakest "
+                    f"region by revenue at "
+                    f"{weakest_region[1]:,.2f}."
+                )
 
                 if why_intent:
 
@@ -1228,11 +1180,11 @@ class BusinessReasoning:
                         f"How has {weakest_region[0]}'s revenue changed historically?",
                     ])
 
-                recommendations.extend([
-                    f"Investigate product contribution within {weakest_region[0]}.",
-                    f"Compare {weakest_region[0]}'s monthly trend against other regions.",
-                    "Track regional product mix together with units, pricing, and discounts.",
-                ])
+                    recommendations.extend([
+                        f"Investigate product contribution within {weakest_region[0]}.",
+                        f"Compare {weakest_region[0]}'s monthly trend against other regions.",
+                        "Track regional product mix together with units, pricing, and discounts.",
+                    ])
 
         # =====================================================
         # PRODUCT INVESTIGATION EVIDENCE
@@ -1309,9 +1261,9 @@ class BusinessReasoning:
                         f"discount of {discount:.2f}%."
                     )
 
-                # ---------------------------------------------
+                # -------------------------------------------------
                 # DIFFERENCE ANALYSIS
-                # ---------------------------------------------
+                # -------------------------------------------------
 
                 if isinstance(
                     differences,
@@ -1395,10 +1347,16 @@ class BusinessReasoning:
             ):
                 continue
 
-            target_product = (
-                investigation.get(
-                    "target_product"
-                )
+            # Historical evidence should only affect a product
+            # query when the question actually asks "why/how".
+            if not (
+                product_intent
+                and why_intent
+            ):
+                continue
+
+            target_product = investigation.get(
+                "target_product"
             )
 
             if not target_product:
@@ -1588,6 +1546,9 @@ class BusinessReasoning:
                 )
             ).lower()
 
+            if not region_intent:
+                continue
+
             if investigation_type == (
                 "regional_product_contribution"
             ):
@@ -1676,23 +1637,6 @@ class BusinessReasoning:
                                 f"{top_product[1]:,.2f}."
                             )
 
-                            if len(
-                                contribution_items
-                            ) > 1:
-
-                                contribution_text = ", ".join(
-                                    f"{name} "
-                                    f"{revenue:,.2f}"
-                                    for name, revenue
-                                    in contribution_items
-                                )
-
-                                insights.append(
-                                    f"{target_region}'s product "
-                                    f"revenue contribution was: "
-                                    f"{contribution_text}."
-                                )
-
             elif investigation_type in (
                 "regional_historical_trend",
                 "historical_trend",
@@ -1777,19 +1721,15 @@ class BusinessReasoning:
                             f"{last[0]}."
                         )
 
-                elif target_region:
-
-                    insights.append(
-                        f"Investigation-stage historical "
-                        f"evidence was used to evaluate the "
-                        f"revenue trend for {target_region}."
-                    )
-
         # =====================================================
         # EXTERNAL INVESTIGATION EVIDENCE
+        # Only visible when external context was requested.
         # =====================================================
 
-        if investigation_external_sources:
+        if (
+            external_intent
+            and investigation_external_sources
+        ):
 
             investigation_count = len(
                 investigation_external_sources
@@ -1807,7 +1747,7 @@ class BusinessReasoning:
                     themes
                 )
 
-                investigation_insight = (
+                insights.append(
                     "Investigation-stage external research "
                     f"validated {investigation_count} source(s) "
                     f"and reinforced market themes around "
@@ -1818,29 +1758,27 @@ class BusinessReasoning:
 
             else:
 
-                investigation_insight = (
+                insights.append(
                     "Investigation-stage external research "
                     f"validated {investigation_count} source(s) "
-                    "for additional market context. The evidence "
-                    "does not establish direct causation for "
-                    "this business."
+                    "for additional market context."
                 )
-
-            insights.append(
-                investigation_insight
-            )
 
         # =====================================================
         # CAUSALITY LIMITATION
+        # Only when external evidence is relevant.
         # =====================================================
 
-        if web_search_found:
+        if (
+            external_intent
+            and web_search_found
+        ):
 
             insights.append(
                 "External market factors may help explain "
-                "historical revenue movements, but the available "
-                "evidence does not establish that these factors "
-                "caused the observed changes in this business."
+                "business movements, but the available evidence "
+                "does not establish that these factors caused "
+                "the observed changes in this business."
             )
 
         # =====================================================
@@ -1883,7 +1821,7 @@ class BusinessReasoning:
 
             evidence_gaps.append(
                 "Additional investigation is required "
-                "to support the requested causal explanation."
+                "to support the requested explanation."
             )
 
         # =====================================================
@@ -1898,623 +1836,40 @@ class BusinessReasoning:
             recommendations
         )
 
+        # Maximum 3 recommendations
         recommendations = (
             recommendations[:3]
         )
 
         # =====================================================
-        # FINAL SOURCE LIST
+        # EXTERNAL SOURCE VISIBILITY
+        #
+        # For internal product/region questions, do not show
+        # unrelated external sources even if planner executed
+        # a web-search task.
         # =====================================================
 
-        external_sources = (
-            primary_external_sources
-        )
+        if external_intent:
+
+            external_sources = (
+                primary_external_sources
+            )
+
+        else:
+
+            external_sources = []
 
         primary_source_count = len(
             external_sources
         )
 
-        investigation_source_count = len(
-            investigation_external_sources
+        investigation_source_count = (
+            len(
+                investigation_external_sources
+            )
+            if external_intent
+            else 0
         )
 
-        # =====================================================
-        # RETURN
-        # =====================================================
-
-        return {
-            "status": "success",
-
-            "insights": insights,
-
-            "recommendations": recommendations,
-
-            "evidence_gaps": (
-                self._dedupe_strings(
-                    evidence_gaps
-                )
-            ),
-
-            "investigation": {
-                "required": investigation_required,
-
-                "completed": investigation_completed,
-
-                "pending": investigation_pending,
-
-                "questions": (
-                    self._dedupe_strings(
-                        investigation_questions
-                    )
-                ),
-
-                "primary_external_source_count": (
-                    primary_source_count
-                ),
-
-                "investigation_external_source_count": (
-                    investigation_source_count
-                ),
-
-                "investigation_sources_available": bool(
-                    investigation_external_sources
-                ),
-
-                "business_evidence_available": (
-                    valid_investigation_evidence
-                ),
-
-                "completed_investigation_types": sorted(
-                    completed_investigation_types
-                ),
-            },
-
-            "external_sources": external_sources,
-
-            "external_evidence": external_evidence,
-
-            "primary_external_evidence": (
-                primary_external_evidence
-            ),
-
-            "investigation_external_evidence": (
-                investigation_external_evidence
-            ),
-
-            "reasoning_metadata": {
-                "primary_external_source_count": (
-                    primary_source_count
-                ),
-
-                "external_source_count": (
-                    primary_source_count
-                ),
-
-                "investigation_external_source_count": (
-                    investigation_source_count
-                ),
-
-                "combined_external_evidence_count": (
-                    len(external_evidence)
-                ),
-
-                "analysis_output_count": (
-                    len(analysis_outputs)
-                ),
-
-                "investigation_result_count": (
-                    len(investigation_results)
-                ),
-
-                "investigation_evidence_count": (
-                    len(
-                        investigation_analysis_outputs
-                    )
-                ),
-            },
-        }
-
-    # =========================================================
-    # RESULT NORMALIZATION
-    # =========================================================
-
-    def _normalize_results(
-        self,
-        results: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-
-        normalized = []
-        seen = set()
-
-        def add_result(result: Dict[str, Any]):
-
-            if not isinstance(result, dict):
-                return
-
-            task_id = result.get(
-                "task_id"
-            )
-
-            if task_id:
-
-                key = (
-                    "task_id",
-                    str(task_id)
-                )
-
-            else:
-
-                key = (
-                    "fallback",
-                    str(
-                        result.get(
-                            "tool",
-                            ""
-                        )
-                    ),
-                    str(
-                        result.get(
-                            "status",
-                            ""
-                        )
-                    ),
-                    str(
-                        result.get(
-                            "type",
-                            ""
-                        )
-                    )
-                )
-
-            if key in seen:
-                return
-
-            seen.add(key)
-
-            normalized.append(
-                result
-            )
-
-            nested = result.get(
-                "original_results",
-                []
-            )
-
-            if isinstance(
-                nested,
-                list
-            ):
-
-                for nested_result in nested:
-
-                    if isinstance(
-                        nested_result,
-                        dict
-                    ):
-                        add_result(
-                            nested_result
-                        )
-
-        for result in results:
-            add_result(result)
-
-        return normalized
-
-    # =========================================================
-    # WEB SOURCE COLLECTION
-    # =========================================================
-
-    def _collect_web_sources(
-        self,
-        output: Dict[str, Any],
-    ) -> Tuple[
-        List[Dict[str, Any]],
-        List[str],
-        List[str],
-    ]:
-
-        sources = []
-        evidence = []
-        direct = []
-
-        if not isinstance(
-            output,
-            dict
-        ):
-            return (
-                sources,
-                evidence,
-                direct
-            )
-
-        results = output.get(
-            "results",
-            []
-        )
-
-        if not isinstance(
-            results,
-            list
-        ):
-            return (
-                sources,
-                evidence,
-                direct
-            )
-
-        for item in results:
-
-            if not isinstance(
-                item,
-                dict
-            ):
-                continue
-
-            title = str(
-                item.get(
-                    "title",
-                    ""
-                )
-            ).strip()
-
-            url = str(
-                item.get(
-                    "url",
-                    ""
-                )
-            ).strip()
-
-            content = str(
-                item.get(
-                    "content",
-                    ""
-                )
-            ).strip()
-
-            if title or url:
-
-                sources.append({
-                    "title": title,
-                    "url": url,
-                    "content": content,
-                })
-
-            if content:
-                evidence.append(
-                    content
-                )
-
-            elif title:
-                direct.append(
-                    title
-                )
-
-        return (
-            sources,
-            evidence,
-            direct
-        )
-
-    # =========================================================
-    # MARKET THEMES
-    # =========================================================
-
-    def _extract_market_themes(
-        self,
-        evidence: List[str],
-    ) -> List[str]:
-
-        if not isinstance(
-            evidence,
-            list
-        ):
-            return []
-
-        text = " ".join(
-            str(item).lower()
-            for item in evidence
-        )
-
-        themes = []
-
-        keyword_groups = [
-            (
-                "pricing pressure",
-                [
-                    "pricing",
-                    "price",
-                    "pricing pressure",
-                    "discount",
-                ],
-            ),
-            (
-                "changing customer behavior",
-                [
-                    "customer behavior",
-                    "consumer behavior",
-                    "buyer behavior",
-                    "customer expectations",
-                ],
-            ),
-            (
-                "competition",
-                [
-                    "competitor",
-                    "competition",
-                    "competitive",
-                ],
-            ),
-            (
-                "digital sales",
-                [
-                    "digital sales",
-                    "online sales",
-                    "digital",
-                ],
-            ),
-            (
-                "personalization",
-                [
-                    "personalization",
-                    "personalized",
-                    "individual customer",
-                ],
-            ),
-            (
-                "broader market conditions",
-                [
-                    "economic",
-                    "market conditions",
-                    "industry trends",
-                    "macroeconomic",
-                ],
-            ),
-        ]
-
-        for label, keywords in keyword_groups:
-
-            if any(
-                keyword in text
-                for keyword in keywords
-            ):
-                themes.append(
-                    label
-                )
-
-        return themes[:5]
-
-    # =========================================================
-    # PRODUCT NAME RESOLUTION
-    # =========================================================
-
-    def _resolve_product_name(
-        self,
-        value: Any,
-        product_analysis: Dict[str, Any],
-    ) -> str:
-
-        if not isinstance(
-            product_analysis,
-            dict
-        ):
-            return ""
-
-        if isinstance(
-            value,
-            str
-        ):
-
-            if value in product_analysis:
-                return value
-
-            value_lower = (
-                value.lower()
-            )
-
-            for name in product_analysis:
-
-                if str(
-                    name
-                ).lower() == value_lower:
-                    return name
-
-        if isinstance(
-            value,
-            dict
-        ):
-
-            name = (
-                value.get(
-                    "name"
-                )
-                or
-                value.get(
-                    "product"
-                )
-            )
-
-            if name:
-                return self._resolve_product_name(
-                    name,
-                    product_analysis
-                )
-
-        return ""
-
-    # =========================================================
-    # SAFE NUMBER
-    # =========================================================
-
-    def _safe_number(
-        self,
-        value: Any,
-    ) -> float:
-
-        try:
-
-            if value is None:
-                return 0.0
-
-            return float(value)
-
-        except (
-            TypeError,
-            ValueError
-        ):
-
-            return 0.0
-
-    # =========================================================
-    # SOURCE DEDUPLICATION
-    # =========================================================
-
-    def _dedupe_sources(
-        self,
-        sources: List[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
-
-        unique = []
-        seen = set()
-
-        if not isinstance(
-            sources,
-            list
-        ):
-            return unique
-
-        for source in sources:
-
-            if not isinstance(
-                source,
-                dict
-            ):
-                continue
-
-            title = str(
-                source.get(
-                    "title",
-                    ""
-                )
-            ).strip()
-
-            url = str(
-                source.get(
-                    "url",
-                    ""
-                )
-            ).strip()
-
-            key = (
-                url.lower()
-                if url
-                else title.lower()
-            )
-
-            if not key:
-                continue
-
-            if key in seen:
-                continue
-
-            seen.add(key)
-
-            unique.append(
-                source
-            )
-
-        return unique
-
-    # =========================================================
-    # STRING DEDUPLICATION
-    # =========================================================
-
-    def _dedupe_strings(
-        self,
-        values: List[str],
-    ) -> List[str]:
-
-        unique = []
-        seen = set()
-
-        if not isinstance(
-            values,
-            list
-        ):
-            return unique
-
-        for value in values:
-
-            if value is None:
-                continue
-
-            text = str(
-                value
-            ).strip()
-
-            if not text:
-                continue
-
-            key = text.lower()
-
-            if key in seen:
-                continue
-
-            seen.add(key)
-
-            unique.append(
-                text
-            )
-
-        return unique
-
-    # =========================================================
-    # FAILED RESULT
-    # =========================================================
-
-    def _failed_result(
-        self,
-        message: str,
-    ) -> Dict[str, Any]:
-
-        return {
-            "status": "failed",
-
-            "insights": [],
-
-            "recommendations": [],
-
-            "evidence_gaps": [
-                str(message)
-            ],
-
-            "investigation": {
-                "required": False,
-                "completed": False,
-                "pending": False,
-                "questions": [],
-                "primary_external_source_count": 0,
-                "investigation_external_source_count": 0,
-                "investigation_sources_available": False,
-                "business_evidence_available": False,
-                "completed_investigation_types": [],
-            },
-
-            "external_sources": [],
-
-            "external_evidence": [],
-
-            "primary_external_evidence": [],
-
-            "investigation_external_evidence": [],
-
-            "reasoning_metadata": {
-                "primary_external_source_count": 0,
-                "external_source_count": 0,
-                "investigation_external_source_count": 0,
-                "combined_external_evidence_count": 0,
-                "analysis_output_count": 0,
-                "investigation_result_count": 0,
-                "investigation_evidence_count": 0,
-            },
-        }
+       
                         
