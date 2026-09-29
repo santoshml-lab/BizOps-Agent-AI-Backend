@@ -453,6 +453,14 @@ class BusinessReasoning:
         # =====================================================
         # INVESTIGATION EVIDENCE EXTRACTION
         # =====================================================
+        #
+        # Investigation output may be returned either:
+        # 1. inside output["investigation"]
+        # 2. directly inside output
+        #
+        # Normalize both forms so re-reasoning can use
+        # the actual investigation evidence.
+        # =====================================================
 
         investigation_analysis_outputs = []
 
@@ -469,36 +477,54 @@ class BusinessReasoning:
             if not isinstance(output, dict):
                 continue
 
+            # -------------------------------------------------
+            # FORM 1: Nested investigation object
+            # -------------------------------------------------
+
             investigation = output.get(
-                "investigation",
-                {}
+                "investigation"
             )
 
-            if isinstance(investigation, dict):
+            if isinstance(
+                investigation,
+                dict
+            ):
 
                 investigation_analysis_outputs.append(
                     investigation
                 )
 
-        valid_investigation_evidence = bool(
-            investigation_analysis_outputs
-        )
+                continue
 
-        completed_investigation_types = set()
+            # -------------------------------------------------
+            # FORM 2: Investigation data returned directly
+            # -------------------------------------------------
 
-        for investigation in investigation_analysis_outputs:
+            investigation_keys = {
+                "type",
+                "target_product",
+                "target_region",
+                "monthly_analysis",
+                "product_analysis",
+                "target_product_data",
+                "product_contribution",
+                "analysis_scope",
+            }
 
-            investigation_type = str(
-                investigation.get(
-                    "type",
-                    ""
+            if any(
+                key in output
+                for key in investigation_keys
+            ):
+
+                investigation_analysis_outputs.append(
+                    output
                 )
-            ).lower().strip()
+        
+        
 
-            if investigation_type:
-                completed_investigation_types.add(
-                    investigation_type
-                )
+        
+
+        
 
         # =====================================================
         # INVESTIGATION COMPLETION
