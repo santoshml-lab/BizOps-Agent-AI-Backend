@@ -1664,8 +1664,13 @@ class BusinessReasoning:
             if not (
                 product_intent
                 and why_intent
-            ):
+                and monthly_intent
+):
                 continue
+                
+                
+            
+                
 
             target_product = investigation.get(
                 "target_product"
