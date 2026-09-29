@@ -576,7 +576,7 @@ class BusinessReasoning:
                 )
 
         investigation_completed = bool(
-            valid_investigation_evidence
+            investigation_analysis_outputs
             or (
                 investigation_results
                 and len(
