@@ -1186,41 +1186,407 @@ class BusinessReasoning:
                         "Track regional product mix together with units, pricing, and discounts.",
                     ])
 
-        # =====================================================
+                # =====================================================
         # PRODUCT INVESTIGATION EVIDENCE
         # =====================================================
+        #
+        # Convert investigation evidence into business
+        # reasoning instead of simply repeating raw metrics.
+        # For "why Product X" questions, compare the target
+        # product with the most relevant revenue competitor.
+        # =====================================================
 
-        for investigation in investigation_analysis_outputs:
+        if (
+            product_intent
+            and why_intent
+            and investigation_analysis_outputs
+        ):
 
-            investigation_type = str(
-                investigation.get(
-                    "type",
-                    ""
+            # -------------------------------------------------
+            # TARGET PRODUCT
+            # -------------------------------------------------
+
+            target_product = None
+
+            for investigation in investigation_analysis_outputs:
+
+                candidate = investigation.get(
+                    "target_product"
                 )
-            ).lower()
 
-            if investigation_type != "product_performance":
-                continue
+                if candidate:
+                    target_product = str(
+                        candidate
+                    ).strip()
+                    break
 
-            target_product = investigation.get(
-                "target_product"
+            # Fallback to strongest product
+            if not target_product:
+                target_product = (
+                    self._resolve_product_name(
+                        strongest_product,
+                        product_analysis
+                    )
+                )
+
+            target_data = {}
+
+            if (
+                target_product
+                and isinstance(
+                    product_analysis,
+                    dict
+                )
+            ):
+
+                candidate = product_analysis.get(
+                    target_product,
+                    {}
+                )
+
+                if isinstance(
+                    candidate,
+                    dict
+                ):
+                    target_data = candidate
+
+            # -------------------------------------------------
+            # FIND MOST RELEVANT COMPETITOR
+            # -------------------------------------------------
+            #
+            # Use the next-highest revenue product rather than
+            # automatically comparing with the weakest product.
+            # This gives a stronger business explanation.
+            # -------------------------------------------------
+
+            competitors = []
+
+            for product_name, data in product_analysis.items():
+
+                if product_name == target_product:
+                    continue
+
+                if not isinstance(
+                    data,
+                    dict
+                ):
+                    continue
+
+                revenue = self._safe_number(
+                    data.get(
+                        "revenue",
+                        0
+                    )
+                )
+
+                competitors.append(
+                    (
+                        product_name,
+                        revenue,
+                        data
+                    )
+                )
+
+            competitors.sort(
+                key=lambda item: item[1],
+                reverse=True
             )
 
-            target_data = investigation.get(
-                "target_product_data",
-                {}
+            competitor_name = None
+            competitor_data = {}
+
+            if competitors:
+
+                competitor_name = competitors[0][0]
+                competitor_data = competitors[0][2]
+
+            # -------------------------------------------------
+            # TARGET METRICS
+            # -------------------------------------------------
+
+            target_revenue = self._safe_number(
+                target_data.get(
+                    "revenue",
+                    0
+                )
             )
 
-            differences = investigation.get(
-                "differences",
-                {}
+            target_units = self._safe_number(
+                target_data.get(
+                    "units_sold",
+                    0
+                )
             )
+
+            target_price = self._safe_number(
+                target_data.get(
+                    "average_unit_price",
+                    0
+                )
+            )
+
+            target_discount = self._safe_number(
+                target_data.get(
+                    "average_discount",
+                    0
+                )
+            )
+
+            # -------------------------------------------------
+            # COMPETITOR METRICS
+            # -------------------------------------------------
+
+            competitor_revenue = self._safe_number(
+                competitor_data.get(
+                    "revenue",
+                    0
+                )
+            )
+
+            competitor_units = self._safe_number(
+                competitor_data.get(
+                    "units_sold",
+                    0
+                )
+            )
+
+            competitor_price = self._safe_number(
+                competitor_data.get(
+                    "average_unit_price",
+                    0
+                )
+            )
+
+            competitor_discount = self._safe_number(
+                competitor_data.get(
+                    "average_discount",
+                    0
+                )
+            )
+
+            # -------------------------------------------------
+            # REVENUE LEAD
+            # -------------------------------------------------
+
+            revenue_difference = (
+                target_revenue
+                - competitor_revenue
+            )
+
+            units_difference = (
+                target_units
+                - competitor_units
+            )
+
+            price_difference = (
+                target_price
+                - competitor_price
+            )
+
+            discount_difference = (
+                target_discount
+                - competitor_discount
+            )
+
+            # -------------------------------------------------
+            # MAIN INVESTIGATION INSIGHT
+            # -------------------------------------------------
+
+            if (
+                target_product
+                and target_data
+            ):
+
+                insights.append(
+                    f"Investigation found that "
+                    f"{target_product} generates "
+                    f"{target_revenue:,.2f} in total revenue "
+                    f"from {target_units:,.0f} units, with an "
+                    f"average unit price of "
+                    f"{target_price:,.2f} and an average "
+                    f"discount of {target_discount:.2f}%."
+                )
+
+            # -------------------------------------------------
+            # TARGET VS NEXT-BEST PRODUCT
+            # -------------------------------------------------
+
+            if (
+                target_product
+                and competitor_name
+                and competitor_data
+            ):
+
+                insights.append(
+                    f"Compared with {competitor_name}, "
+                    f"{target_product} generates "
+                    f"{revenue_difference:,.2f} more revenue "
+                    f"and sells {units_difference:,.0f} more "
+                    f"units. However, its average unit price "
+                    f"is {abs(price_difference):,.2f} "
+                    f"{'higher' if price_difference > 0 else 'lower'} "
+                    f"than {competitor_name}'s."
+                )
+
+                # -------------------------------------------------
+                # VOLUME DRIVER
+                # -------------------------------------------------
+
+                if units_difference > 0:
+
+                    insights.append(
+                        f"The strongest internal signal is "
+                        f"sales volume: {target_product} sells "
+                        f"{units_difference:,.0f} more units than "
+                        f"{competitor_name}. This higher volume "
+                        f"is a major contributor to its higher "
+                        f"total revenue."
+                    )
+
+                # -------------------------------------------------
+                # PRICING DRIVER
+                # -------------------------------------------------
+
+                if price_difference > 0:
+
+                    insights.append(
+                        f"{target_product} also has a higher "
+                        f"average unit price than "
+                        f"{competitor_name}, which provides an "
+                        f"additional revenue advantage."
+                    )
+
+                elif price_difference < 0:
+
+                    insights.append(
+                        f"Although {target_product}'s average "
+                        f"unit price is lower than "
+                        f"{competitor_name}'s, its substantially "
+                        f"higher unit volume more than offsets "
+                        f"that price difference in total revenue."
+                    )
+
+                # -------------------------------------------------
+                # DISCOUNT SIGNAL
+                # -------------------------------------------------
+
+                if discount_difference < 0:
+
+                    insights.append(
+                        f"{target_product} also has a lower "
+                        f"average discount "
+                        f"({target_discount:.2f}% vs "
+                        f"{competitor_discount:.2f}% for "
+                        f"{competitor_name}), which is consistent "
+                        f"with stronger realized revenue per sale."
+                    )
+
+                elif discount_difference > 0:
+
+                    insights.append(
+                        f"{target_product} uses a higher average "
+                        f"discount ({target_discount:.2f}% vs "
+                        f"{competitor_discount:.2f}% for "
+                        f"{competitor_name}), so its revenue "
+                        f"advantage is more strongly associated "
+                        f"with volume and pricing than with lower "
+                        f"discounting."
+                    )
+
+            # -------------------------------------------------
+            # BUSINESS CONCLUSION
+            # -------------------------------------------------
+
+            if (
+                target_product
+                and competitor_name
+                and units_difference > 0
+            ):
+
+                if price_difference < 0:
+
+                    insights.append(
+                        f"Overall, the available internal data "
+                        f"indicates that {target_product}'s "
+                        f"revenue leadership is primarily "
+                        f"associated with higher sales volume, "
+                        f"rather than having the highest unit "
+                        f"price."
+                    )
+
+                else:
+
+                    insights.append(
+                        f"Overall, the available internal data "
+                        f"indicates that {target_product}'s "
+                        f"revenue leadership is associated with "
+                        f"a combination of higher sales volume "
+                        f"and its pricing position."
+                    )
+
+            # -------------------------------------------------
+            # INVESTIGATION QUESTIONS
+            # -------------------------------------------------
+
+            investigation_required = True
 
             if target_product:
 
-                if isinstance(
-                    target_data,
-                    dict
+                investigation_questions.extend([
+                    f"Why does {target_product} generate more revenue based on units, pricing, and discounts?",
+                    f"Is the revenue advantage of {target_product} consistent across months?",
+                    f"Which product-level factors are most strongly associated with {target_product}'s revenue advantage?",
+                ])
+
+            # -------------------------------------------------
+            # PRODUCT RECOMMENDATIONS
+            # -------------------------------------------------
+
+            if target_product:
+
+                recommendations.extend([
+                    f"Analyze what is driving {target_product}'s higher unit volume and identify which demand or sales factors can be replicated.",
+                    f"Compare {target_product}'s monthly volume, pricing, and discount pattern with {competitor_name or 'other products'} before changing product strategy.",
+                    "Use units sold, realized pricing, and discount levels together when evaluating future product performance.",
+                ])
+
+        # =====================================================
+        # NON-WHY PRODUCT EVIDENCE
+        # =====================================================
+        #
+        # For simple product questions, keep the output factual
+        # and avoid unnecessary causal language.
+        # =====================================================
+
+        elif product_intent:
+
+            for investigation in investigation_analysis_outputs:
+
+                investigation_type = str(
+                    investigation.get(
+                        "type",
+                        ""
+                    )
+                ).lower()
+
+                if investigation_type != "product_performance":
+                    continue
+
+                target_product = investigation.get(
+                    "target_product"
+                )
+
+                target_data = investigation.get(
+                    "target_product_data",
+                    {}
+                )
+
+                if (
+                    target_product
+                    and isinstance(
+                        target_data,
+                        dict
+                    )
                 ):
 
                     revenue = self._safe_number(
@@ -1237,94 +1603,21 @@ class BusinessReasoning:
                         )
                     )
 
-                    price = self._safe_number(
-                        target_data.get(
-                            "average_unit_price",
-                            0
-                        )
-                    )
-
-                    discount = self._safe_number(
-                        target_data.get(
-                            "average_discount",
-                            0
-                        )
-                    )
-
                     insights.append(
-                        f"Investigation evidence shows "
+                        f"Investigation confirms "
                         f"{target_product} has "
-                        f"{units:,.0f} units sold, "
-                        f"{revenue:,.2f} total revenue, "
-                        f"an average unit price of "
-                        f"{price:,.2f}, and an average "
-                        f"discount of {discount:.2f}%."
-                    )
+                        f"{units:,.0f} units sold and "
+                        f"{revenue:,.2f} total revenue."
+            )
+        
+        
 
-                # -------------------------------------------------
-                # DIFFERENCE ANALYSIS
-                # -------------------------------------------------
+        
 
-                if isinstance(
-                    differences,
-                    dict
-                ):
-
-                    for competitor, values in differences.items():
-
-                        if not isinstance(
-                            values,
-                            dict
-                        ):
-                            continue
-
-                        revenue_difference = (
-                            self._safe_number(
-                                values.get(
-                                    "revenue_difference",
-                                    0
-                                )
-                            )
-                        )
-
-                        units_difference = (
-                            self._safe_number(
-                                values.get(
-                                    "units_sold_difference",
-                                    0
-                                )
-                            )
-                        )
-
-                        price_difference = (
-                            self._safe_number(
-                                values.get(
-                                    "average_unit_price_difference",
-                                    0
-                                )
-                            )
-                        )
-
-                        discount_difference = (
-                            self._safe_number(
-                                values.get(
-                                    "average_discount_difference",
-                                    0
-                                )
-                            )
-                        )
-
-                        insights.append(
-                            f"{target_product} versus "
-                            f"{competitor}: revenue difference "
-                            f"{revenue_difference:,.2f}, units "
-                            f"difference {units_difference:,.0f}, "
-                            f"average price difference "
-                            f"{price_difference:,.2f}, and average "
-                            f"discount difference "
-                            f"{discount_difference:.2f} percentage "
-                            f"points."
-                        )
+                    
+                    
+                            
+                                    
 
         # =====================================================
         # PRODUCT HISTORICAL / CONSISTENCY EVIDENCE
