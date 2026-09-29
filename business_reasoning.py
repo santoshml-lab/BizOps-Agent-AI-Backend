@@ -1870,6 +1870,589 @@ class BusinessReasoning:
             if external_intent
             else 0
         )
+                # =====================================================
+        # FINAL RESPONSE
+        # =====================================================
+
+        final_response_parts = []
+
+        if insights:
+            final_response_parts.append(
+                " ".join(insights)
+            )
+
+        if investigation_pending:
+            final_response_parts.append(
+                "The available evidence is not sufficient "
+                "to fully explain the requested business "
+                "question, so additional investigation is required."
+            )
+
+        if recommendations:
+            final_response_parts.append(
+                "Recommended actions: "
+                + " ".join(recommendations)
+            )
+
+        if not final_response_parts:
+            final_response_parts.append(
+                "Business analysis was completed, but no "
+                "specific reasoning could be generated from "
+                "the available evidence."
+            )
+
+        final_response = " ".join(
+            final_response_parts
+        )
+
+        # =====================================================
+        # FINAL RESULT
+        # =====================================================
+
+        return {
+            "status": "success",
+            "insights": insights,
+            "recommendations": recommendations,
+            "investigation_required": investigation_required,
+            "investigation_pending": investigation_pending,
+            "investigation_completed": investigation_completed,
+            "investigation_questions": (
+                self._dedupe_strings(
+                    investigation_questions
+                )
+            ),
+            "evidence_gaps": (
+                self._dedupe_strings(
+                    evidence_gaps
+                )
+            ),
+            "external_sources": external_sources,
+            "external_source_count": (
+                primary_source_count
+                + investigation_source_count
+            ),
+            "web_search_found": web_search_found,
+            "final_response": final_response,
+        }
+
+    # =========================================================
+    # NORMALIZE RESULTS
+    # =========================================================
+
+    def _normalize_results(
+        self,
+        results: List[Any],
+    ) -> List[Dict[str, Any]]:
+
+        normalized = []
+
+        for result in results:
+
+            if isinstance(result, dict):
+
+                normalized.append(result)
+
+        return normalized
+
+    # =========================================================
+    # SAFE NUMBER
+    # =========================================================
+
+    def _safe_number(
+        self,
+        value: Any,
+    ) -> float:
+
+        try:
+
+            if value is None:
+                return 0.0
+
+            if isinstance(
+                value,
+                bool
+            ):
+                return float(value)
+
+            return float(value)
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            return 0.0
+
+    # =========================================================
+    # RESOLVE PRODUCT NAME
+    # =========================================================
+
+    def _resolve_product_name(
+        self,
+        product: Any,
+        product_analysis: Dict[str, Any],
+    ) -> str:
+
+        if not product:
+            return ""
+
+        if isinstance(
+            product,
+            str
+        ):
+
+            if product in product_analysis:
+                return product
+
+            return product
+
+        if isinstance(
+            product,
+            dict
+        ):
+
+            for key in [
+                "product",
+                "name",
+                "product_name",
+                "target_product",
+            ]:
+
+                value = product.get(key)
+
+                if value:
+
+                    return str(value)
+
+        return str(product)
+
+    # =========================================================
+    # COLLECT WEB SOURCES
+    # =========================================================
+
+    def _collect_web_sources(
+        self,
+        output: Any,
+    ) -> Tuple[
+        List[Dict[str, Any]],
+        List[str],
+        List[str],
+    ]:
+
+        sources = []
+        evidence = []
+        direct = []
+
+        if not isinstance(
+            output,
+            dict
+        ):
+            return (
+                sources,
+                evidence,
+                direct,
+            )
+
+        # -----------------------------------------------------
+        # SOURCE LIST
+        # -----------------------------------------------------
+
+        possible_sources = (
+            output.get(
+                "sources",
+                []
+            )
+        )
+
+        if isinstance(
+            possible_sources,
+            list
+        ):
+
+            for source in possible_sources:
+
+                if isinstance(
+                    source,
+                    dict
+                ):
+
+                    url = str(
+                        source.get(
+                            "url",
+                            ""
+                        )
+                    ).strip()
+
+                    title = str(
+                        source.get(
+                            "title",
+                            source.get(
+                                "name",
+                                ""
+                            )
+                        )
+                    ).strip()
+
+                    if url or title:
+
+                        sources.append({
+                            "title": title,
+                            "url": url,
+                        })
+
+                elif isinstance(
+                    source,
+                    str
+                ):
+
+                    source = source.strip()
+
+                    if source:
+
+                        sources.append({
+                            "title": source,
+                            "url": source,
+                        })
+
+        # -----------------------------------------------------
+        # EVIDENCE
+        # -----------------------------------------------------
+
+        possible_evidence = (
+            output.get(
+                "evidence",
+                []
+            )
+        )
+
+        if isinstance(
+            possible_evidence,
+            list
+        ):
+
+            for item in possible_evidence:
+
+                if isinstance(
+                    item,
+                    str
+                ):
+
+                    item = item.strip()
+
+                    if item:
+                        evidence.append(item)
+
+                elif isinstance(
+                    item,
+                    dict
+                ):
+
+                    text = (
+                        item.get(
+                            "text"
+                        )
+                        or
+                        item.get(
+                            "evidence"
+                        )
+                        or
+                        item.get(
+                            "snippet"
+                        )
+                    )
+
+                    if text:
+
+                        evidence.append(
+                            str(text).strip()
+                        )
+
+        elif isinstance(
+            possible_evidence,
+            str
+        ):
+
+            possible_evidence = (
+                possible_evidence.strip()
+            )
+
+            if possible_evidence:
+                evidence.append(
+                    possible_evidence
+                )
+
+        # -----------------------------------------------------
+        # DIRECT EVIDENCE
+        # -----------------------------------------------------
+
+        possible_direct = (
+            output.get(
+                "direct_evidence",
+                []
+            )
+        )
+
+        if isinstance(
+            possible_direct,
+            list
+        ):
+
+            for item in possible_direct:
+
+                if isinstance(
+                    item,
+                    str
+                ):
+
+                    item = item.strip()
+
+                    if item:
+                        direct.append(item)
+
+                elif isinstance(
+                    item,
+                    dict
+                ):
+
+                    text = (
+                        item.get(
+                            "text"
+                        )
+                        or
+                        item.get(
+                            "evidence"
+                        )
+                        or
+                        item.get(
+                            "snippet"
+                        )
+                    )
+
+                    if text:
+
+                        direct.append(
+                            str(text).strip()
+                        )
+
+        elif isinstance(
+            possible_direct,
+            str
+        ):
+
+            possible_direct = (
+                possible_direct.strip()
+            )
+
+            if possible_direct:
+                direct.append(
+                    possible_direct
+                )
+
+        return (
+            sources,
+            evidence,
+            direct,
+        )
+
+    # =========================================================
+    # DEDUPE STRINGS
+    # =========================================================
+
+    def _dedupe_strings(
+        self,
+        values: List[Any],
+    ) -> List[str]:
+
+        result = []
+        seen = set()
+
+        if not isinstance(
+            values,
+            list
+        ):
+            return result
+
+        for value in values:
+
+            if value is None:
+                continue
+
+            text = str(
+                value
+            ).strip()
+
+            if not text:
+                continue
+
+            normalized = text.lower()
+
+            if normalized in seen:
+                continue
+
+            seen.add(
+                normalized
+            )
+
+            result.append(
+                text
+            )
+
+        return result
+
+    # =========================================================
+    # DEDUPE SOURCES
+    # =========================================================
+
+    def _dedupe_sources(
+        self,
+        sources: List[Any],
+    ) -> List[Dict[str, Any]]:
+
+        result = []
+        seen = set()
+
+        if not isinstance(
+            sources,
+            list
+        ):
+            return result
+
+        for source in sources:
+
+            if not isinstance(
+                source,
+                dict
+            ):
+                continue
+
+            title = str(
+                source.get(
+                    "title",
+                    ""
+                )
+            ).strip()
+
+            url = str(
+                source.get(
+                    "url",
+                    ""
+                )
+            ).strip()
+
+            key = (
+                url.lower()
+                if url
+                else title.lower()
+            )
+
+            if not key:
+                continue
+
+            if key in seen:
+                continue
+
+            seen.add(
+                key
+            )
+
+            result.append({
+                "title": title,
+                "url": url,
+            })
+
+        return result
+
+    # =========================================================
+    # MARKET THEMES
+    # =========================================================
+
+    def _extract_market_themes(
+        self,
+        evidence: List[str],
+    ) -> List[str]:
+
+        themes = []
+
+        if not isinstance(
+            evidence,
+            list
+        ):
+            return themes
+
+        theme_keywords = {
+            "demand": [
+                "demand",
+                "consumer demand",
+                "sales demand",
+            ],
+            "competition": [
+                "competition",
+                "competitor",
+                "competitive",
+            ],
+            "pricing": [
+                "price",
+                "pricing",
+                "cost",
+            ],
+            "inflation": [
+                "inflation",
+            ],
+            "consumer behavior": [
+                "consumer behavior",
+                "customer behavior",
+            ],
+            "market trend": [
+                "market trend",
+                "industry trend",
+                "market growth",
+            ],
+        }
+
+        combined_text = " ".join(
+            str(item).lower()
+            for item in evidence
+        )
+
+        for theme, keywords in theme_keywords.items():
+
+            if any(
+                keyword in combined_text
+                for keyword in keywords
+            ):
+
+                themes.append(
+                    theme
+                )
+
+        return themes
+
+    # =========================================================
+    # FAILED RESULT
+    # =========================================================
+
+    def _failed_result(
+        self,
+        message: str,
+    ) -> Dict[str, Any]:
+
+        return {
+            "status": "failed",
+            "insights": [],
+            "recommendations": [],
+            "investigation_required": False,
+            "investigation_pending": False,
+            "investigation_completed": False,
+            "investigation_questions": [],
+            "evidence_gaps": [
+                message
+            ],
+            "external_sources": [],
+            "external_source_count": 0,
+            "web_search_found": False,
+            "final_response": message,
+        }
+        
         
 
        
