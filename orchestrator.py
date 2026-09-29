@@ -489,28 +489,45 @@ class Orchestrator:
         # INVESTIGATION CHECK
         # -------------------------------------------------
 
-        investigation = reasoning_result.get(
-            "investigation",
-            {}
-        )
+        investigation = {
+            "required": reasoning_result.get(
+                "investigation_required",
+                False
+            ),
+            "pending": reasoning_result.get(
+                "investigation_pending",
+                False
+            ),
+            "completed": reasoning_result.get(
+                "investigation_completed",
+                False
+            ),
+            "reason": (
+                reasoning_result.get(
+                    "evidence_gaps",
+                    []
+                )[0]
+                if reasoning_result.get(
+                    "evidence_gaps",
+                    []
+                )
+                else "Additional investigation is required."
+            ),
+            "questions": reasoning_result.get(
+                "investigation_questions",
+                []
+            )
+        }
 
         investigation_results = []
 
         if investigation.get("required"):
 
-            self.trace.add_event(
-                "INVESTIGATION_REQUIRED",
-                "Agent determined that additional investigation is required.",
-                {
-                    "reason": investigation.get(
-                        "reason"
-                    ),
-                    "questions": investigation.get(
-                        "questions",
-                        []
-                    )
-                }
-            )
+        
+        
+        
+
+        
 
             # -------------------------------------------------
             # INVESTIGATION PLANNING
