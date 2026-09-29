@@ -177,6 +177,14 @@ def resolve_input(input_data: Dict[str, Any]):
         task_inputs=task_inputs,
     )
 
+@app.post("/test-post")
+def test_post(input_data: Dict[str, Any]):
+    return {
+        "status": "success",
+        "message": "POST request is working",
+        "received": input_data,
+    }
+
 @app.post("/agent/run")
 def run_agent(input_data: Dict[str, Any]):
 
